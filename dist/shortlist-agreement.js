@@ -93,12 +93,18 @@ matchViewContact=async function(key){
   const t=matchTarget(item);if(!t)return;
   try{
     const c=matchConnection(item);
-    const res=await talindSupabase.rpc('get_match_contact_v2',{
-      p_connection_id:c?c.id:null,
-      p_target_user:t.userId,
-      p_requester_role:state.role,
-      p_target_role:t.role
-    });
+    const res=(state.role==='learner'&&t.role!=='teacher')
+      ?await talindSupabase.rpc('get_match_contact',{
+          p_target_user:t.userId,
+          p_requester_role:state.role,
+          p_target_role:t.role
+        })
+      :await talindSupabase.rpc('get_match_contact_v2',{
+          p_connection_id:c?c.id:null,
+          p_target_user:t.userId,
+          p_requester_role:state.role,
+          p_target_role:t.role
+        });
     if(res.error)throw res.error;
     const row=(res.data||[])[0];
 
