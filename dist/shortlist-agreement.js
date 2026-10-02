@@ -143,6 +143,10 @@ matchViewContact=async function(key){
 matchActions=function(item){
   const c=matchConnection(item),status=matchStatusLabel(c),parts=[];
 
+  if(teacherServiceLocked(item)){
+    return '<div style="margin-top:12px"><span class="badge">Paid Teacher Services</span></div><div class="notice" style="margin-top:12px"><strong>Job seeking is free. Providing services is paid.</strong><br>Activate Teacher Services to shortlist learner requirements, express interest, chat, submit quotes or provide tuition/coaching services.</div><div class="dialog-actions"><button class="btn" onclick="openTeacherServicesMembership()">Activate Teacher Services</button></div>';
+  }
+
   if(!c)parts.push('<button class="btn outline" onclick="matchSetStatus(\''+item.key+'\',\'shortlisted\')">Shortlist</button>');
   if(!c||c.status==='shortlisted')parts.push('<button class="btn" onclick="matchSetStatus(\''+item.key+'\',\'interest_expressed\')">Express interest</button>');
 
