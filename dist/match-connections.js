@@ -55,6 +55,14 @@ function matchMembershipActive(plan){
     return m.plan_code===plan&&m.status==='active'&&start&&end;
   });
 }
+function teacherServiceLocked(item){
+  return state.role==='teacher'&&item&&item.kind==='requirement'&&!matchMembershipActive('teacher-services');
+}
+function openTeacherServicesMembership(){
+  billing.audience='teacher';
+  navigate('plans');
+  toast('Teacher Services membership is required to offer tuition, coaching or other services.');
+}
 async function matchEnsureConnection(item,status){
   let c=matchConnection(item);if(c)return c;
   const t=matchTarget(item);if(!t||!talindCurrentUser)throw new Error('Unable to identify this match.');
@@ -74,6 +82,7 @@ async function matchEnsureConnection(item,status){
 }
 async function matchSetStatus(key,status){
   const item=liveFind(key);if(!item)return;
+  if(teacherServiceLocked(item)){openTeacherServicesMembership();return;}
   try{
     let c=matchConnection(item);
     if(!c){c=await matchEnsureConnection(item,status)}
@@ -88,6 +97,7 @@ async function matchSetStatus(key,status){
 }
 async function matchSubmitQuote(key){
   const item=liveFind(key);if(!item)return;
+  if(teacherServiceLocked(item)){openTeacherServicesMembership();return;}
   if(state.role!=='teacher'||item.kind!=='requirement'){toast('Quotes are used for teacher/expert service opportunities.');return}
   modal('<span class="eyebrow">SUBMIT QUOTE</span><h2>'+esc(item.title)+'</h2><p class="muted">Send a clear fee and short proposal. The learner or parent can accept it from their Talind account.</p><form id="quote-form"><div class="fields"><label>Quote amount (INR)<input name="amount" type="number" min="0" step="1" required></label><label class="full">Proposal / inclusions<textarea name="note" required maxlength="1500" placeholder="What you will provide, frequency, duration and any conditions."></textarea></label></div><button class="btn" type="submit">Submit quote</button></form><p id="quote-error" class="form-error"></p>');
   $('#quote-form').onsubmit=async function(e){
@@ -135,6 +145,7 @@ async function matchViewContact(key){
 }
 async function matchOpenChat(key){
   const item=liveFind(key);if(!item)return;
+  if(teacherServiceLocked(item)){openTeacherServicesMembership();return;}
   try{
     const c=await matchEnsureConnection(item,'interest_expressed');
     const res=await talindSupabase.from('match_messages').select('*').eq('connection_id',c.id).order('created_at',{ascending:true});
