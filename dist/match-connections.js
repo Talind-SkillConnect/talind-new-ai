@@ -3,6 +3,8 @@ const matchState={connections:[],memberships:[]};
 
 function matchTarget(item){
   if(item.kind==='teacher')return {userId:item.publicRow.user_id,role:'teacher',contextType:'teacher_profile',contextId:null};
+  if(item.kind==='institution')return {userId:item.publicRow.user_id,role:'institution',contextType:'institution_profile',contextId:null};
+  if(item.kind==='training')return {userId:item.publicRow.user_id,role:'training',contextType:'training_profile',contextId:null};
   if(item.kind==='requirement')return {userId:item.requirementRow.user_id,role:'learner',contextType:'learner_requirement',contextId:item.requirementRow.id};
   return null;
 }
