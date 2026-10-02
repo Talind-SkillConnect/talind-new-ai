@@ -173,6 +173,25 @@ async function cloudSaveCurrentRole({complete=false}={}){
 
     // Publish only safe discovery fields; contact details remain private in profiles/role_profiles.
     try{
+      let publicPurposes=Array.isArray(f.purposes)?[...f.purposes]:[];
+      if(role==='teacher'&&publicPurposes.includes('Offer tuition / coaching / training')){
+        const {data:serviceMemberships,error:serviceMembershipError}=await talindSupabase
+          .from('memberships')
+          .select('status,starts_at,ends_at')
+          .eq('user_id',uid)
+          .eq('plan_code','teacher-services')
+          .eq('status','active');
+        if(serviceMembershipError)throw serviceMembershipError;
+        const now=Date.now();
+        const serviceActive=(serviceMemberships||[]).some(function(m){
+          const starts=!m.starts_at||new Date(m.starts_at).getTime()<=now;
+          const ends=!m.ends_at||new Date(m.ends_at).getTime()>now;
+          return starts&&ends;
+        });
+        if(!serviceActive){
+          publicPurposes=publicPurposes.filter(function(p){return p!=='Offer tuition / coaching / training'});
+        }
+      }
       const publicProfile={
         user_id:uid,
         role,
@@ -184,8 +203,8 @@ async function cloudSaveCurrentRole({complete=false}={}){
         country:f.country||'India',
         mode:f.mode||f.format||null,
         skills:(r.skills||[]).map(s=>s.name).filter(Boolean),
-        purposes:Array.isArray(f.purposes)?f.purposes:[],
-        is_active:!!r.complete && f.profilePublic!==false
+        purposes:publicPurposes,
+        is_active:!!r.complete && f.profilePublic!==false && (role!=='teacher'||publicPurposes.length>0)
       };
       const {error:publicError}=await talindSupabase.from('public_profiles').upsert(
         publicProfile,
@@ -280,6 +299,10 @@ async function cloudHandleSession(session){
   if(talindCurrentUser){
     try{
       await cloudLoadUser();
+      if(state.role==='teacher'){
+        try{await cloudSaveCurrentRole({complete:!!record().complete});}
+        catch(syncError){console.warn('Teacher public-access sync pending',syncError);}
+      }
     }catch(error){
       console.error('Talind profile load failed',error);
       toast('Signed in, but your profile could not be loaded yet.');
