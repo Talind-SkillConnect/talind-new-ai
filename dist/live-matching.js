@@ -33,7 +33,13 @@ function liveReason(item){
   return 'Relevant to your selected Talind role and goals';
 }
 function liveTeacherItems(){
-  return (liveDiscovery.profiles||[]).filter(function(p){return p.role==='teacher'&&p.is_active&&p.user_id!==talindCurrentUser?.id}).map(function(p,i){
+  return (liveDiscovery.profiles||[]).filter(function(p){
+    if(!(p.role==='teacher'&&p.is_active&&p.user_id!==talindCurrentUser?.id))return false;
+    const purposes=Array.isArray(p.purposes)?p.purposes:[];
+    if(state.role==='learner')return purposes.includes('Offer tuition / coaching / training');
+    if(state.role==='institution')return purposes.includes('Find a job');
+    return true;
+  }).map(function(p,i){
     const x={live:true,kind:'teacher',key:'teacher:'+p.user_id,id:700000+i,name:p.display_name||'Teacher / Expert',initials:liveInitials(p.display_name),type:'Teacher / Expert',title:p.headline||'Teacher / Expert',subtitle:p.city||p.region||'Location not specified',desc:p.bio||'Talind teacher profile',tags:Array.isArray(p.skills)?p.skills:[],location:p.city||p.region||p.country||'Not specified',mode:p.mode||'Flexible',price:'Connect through Talind',note:'Contact details stay private',publicRow:p};
     x.matchScore=liveMatchScore(x);x.matchReason=liveReason(x);return x;
   }).sort(function(a,b){return b.matchScore-a.matchScore});
