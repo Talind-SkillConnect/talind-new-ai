@@ -144,7 +144,7 @@ async function cloudSaveCurrentRole({complete=false}={}){
       bio:f.bio||f.goals||'',
       form_data:payload,
       profile_complete:!!r.complete,
-      is_published:!!r.complete
+      is_published:!!r.complete && f.profilePublic!==false
     },{onConflict:'user_id,role'});
     if(roleError)throw roleError;
 
@@ -185,7 +185,7 @@ async function cloudSaveCurrentRole({complete=false}={}){
         mode:f.mode||f.format||null,
         skills:(r.skills||[]).map(s=>s.name).filter(Boolean),
         purposes:Array.isArray(f.purposes)?f.purposes:[],
-        is_active:!!r.complete
+        is_active:!!r.complete && f.profilePublic!==false
       };
       const {error:publicError}=await talindSupabase.from('public_profiles').upsert(
         publicProfile,
