@@ -144,7 +144,7 @@ async function cloudSaveCurrentRole({complete=false}={}){
       bio:f.bio||f.goals||'',
       form_data:payload,
       profile_complete:!!r.complete,
-      is_published:false
+      is_published:!!r.complete
     },{onConflict:'user_id,role'});
     if(roleError)throw roleError;
 
@@ -170,7 +170,96 @@ async function cloudSaveCurrentRole({complete=false}={}){
       if(skillError)throw skillError;
     }
 
+
+    // Publish only safe discovery fields; contact details remain private in profiles/role_profiles.
+    try{
+      const publicProfile={
+        user_id:uid,
+        role,
+        display_name:f.name||f.authorisedPerson||'Talind member',
+        headline:f.headline||roleNames[role],
+        bio:f.bio||f.goals||'',
+        city:f.city||null,
+        region:f.region||null,
+        country:f.country||'India',
+        mode:f.mode||f.format||null,
+        skills:(r.skills||[]).map(s=>s.name).filter(Boolean),
+        purposes:Array.isArray(f.purposes)?f.purposes:[],
+        is_active:!!r.complete
+      };
+      const {error:publicError}=await talindSupabase.from('public_profiles').upsert(
+        publicProfile,
+        {onConflict:'user_id,role'}
+      );
+      if(publicError)throw publicError;
+
+      if(role==='learner'){
+        const makeReq=(slot,type)=>{
+          if(!type||type==='No second requirement')return null;
+          const slug=String(type).toLowerCase().replace(/[^a-z]+/g,'_').replace(/^_|_$/g,'');
+          const prefix=slot+'_'+slug+'_';
+          const specific={};
+          for(const [k,v] of Object.entries(f)){
+            if(k.startsWith(prefix)&&v!==''&&v!=null)specific[k.slice(prefix.length)]=v;
+          }
+          const skillNames=(r.skills||[])
+            .filter(s=>s.purpose==='Want to learn'||s.purpose==='Already have'||!s.purpose)
+            .map(s=>s.name)
+            .filter(Boolean);
+          const focus=specific.focus||specific.programme||specific.class||specific.grade||skillNames.join(', ')||type;
+          const location=specific.location||f.city||null;
+          const mode=specific.mode||f.mode||'Flexible';
+          const budgetText=specific.budget||f.budgetBand||null;
+          return {
+            user_id:uid,
+            slot,
+            title:focus&&focus!==type?type+' — '+String(focus).slice(0,120):type,
+            requirement_type:type,
+            subject_skill:String(focus||type).slice(0,300),
+            location,
+            mode,
+            budget_min:null,
+            budget_max:null,
+            budget_unit:specific.budgetUnit||f.budgetUnit||null,
+            timing:specific.timing||f.timing||null,
+            start_preference:specific.start||f.start||null,
+            details:{
+              ...specific,
+              budget_text:budgetText,
+              learner_stage:f.stage||null,
+              grade:f.grade||null,
+              curriculum:f.curriculum||null
+            },
+            status:r.complete?'active':'draft'
+          };
+        };
+        const mainReq=makeReq('main',f.needs);
+        const secondReq=makeReq('second',f.secondNeed);
+        for(const req of [mainReq,secondReq].filter(Boolean)){
+          const {error:reqError}=await talindSupabase.from('learner_requirements').upsert(
+            req,
+            {onConflict:'user_id,slot'}
+          );
+          if(reqError)throw reqError;
+        }
+        if(!secondReq){
+          const {error:delSecondError}=await talindSupabase
+            .from('learner_requirements')
+            .delete()
+            .eq('user_id',uid)
+            .eq('slot','second');
+          if(delSecondError)throw delSecondError;
+        }
+      }
+    }catch(publishError){
+      // Profile ownership data is already saved; discovery sync can be retried after schema/policy setup.
+      console.warn('Talind discovery sync pending',publishError);
+    }
+
     cloudUpdateVisibleProfile(role);
+    if(typeof liveLoadDiscovery==='function'){
+      try{await liveLoadDiscovery();}catch(e){console.warn('Talind match refresh pending',e);}
+    }
     return true;
   }catch(error){
     console.error('Talind cloud save failed',error);
