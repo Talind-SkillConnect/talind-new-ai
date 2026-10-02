@@ -206,29 +206,29 @@ async function cloudHandleSession(session){
 
 function authScreen(kind='signup'){
   const isSignup=kind==='signup';
-  modal(\`
-    <span class="eyebrow">\${isSignup?'SIGN UP':'LOG IN'}</span>
-    <h2>\${isSignup?'Create your Talind account.':'Welcome back to Talind.'}</h2>
-    <p class="muted">\${isSignup?'Create one account and build the profile that matches your goal.':'Use the email and password you registered with.'}</p>
+  modal(`
+    <span class="eyebrow">${isSignup?'SIGN UP':'LOG IN'}</span>
+    <h2>${isSignup?'Create your Talind account.':'Welcome back to Talind.'}</h2>
+    <p class="muted">${isSignup?'Create one account and build the profile that matches your goal.':'Use the email and password you registered with.'}</p>
     <form id="auth-form">
       <div class="fields">
         <label class="full">Email
           <input name="email" type="email" autocomplete="email" required placeholder="you@example.com">
         </label>
-        \${isSignup?\`<label class="full">Starting profile
-          <select name="role">\${Object.entries(roleNames).map(([k,v])=>\`<option value="\${k}" \${k===state.role?'selected':''}>\${v}</option>\`).join('')}</select>
-        </label>\`:''}
+        ${isSignup?`<label class="full">Starting profile
+          <select name="role">${Object.entries(roleNames).map(([k,v])=>`<option value="${k}" ${k===state.role?'selected':''}>${v}</option>`).join('')}</select>
+        </label>`:''}
         <label class="full">Password
-          <input name="password" type="password" autocomplete="\${isSignup?'new-password':'current-password'}" minlength="8" required placeholder="Minimum 8 characters">
+          <input name="password" type="password" autocomplete="${isSignup?'new-password':'current-password'}" minlength="8" required placeholder="Minimum 8 characters">
         </label>
       </div>
-      <button class="btn" type="submit">\${isSignup?'Create account':'Log in'}</button>
-      <p class="muted">\${isSignup?'Already have an account?':'New to Talind?'}
-        <button class="text-button" type="button" onclick="authScreen('\${isSignup?'login':'signup'}')">\${isSignup?'Log in':'Sign up'}</button>
+      <button class="btn" type="submit">${isSignup?'Create account':'Log in'}</button>
+      <p class="muted">${isSignup?'Already have an account?':'New to Talind?'}
+        <button class="text-button" type="button" onclick="authScreen('${isSignup?'login':'signup'}')">${isSignup?'Log in':'Sign up'}</button>
       </p>
       <p id="auth-error" class="form-error" role="alert"></p>
     </form>
-  \`);
+  `);
 
   $('#auth-form').onsubmit=async e=>{
     e.preventDefault();
@@ -261,12 +261,12 @@ function authScreen(kind='signup'){
           navigate('profile');
           toast('Account created. Complete your Talind profile.');
         }else{
-          $('#modal-body').innerHTML=\`
+          $('#modal-body').innerHTML=`
             <span class="eyebrow">CHECK YOUR EMAIL</span>
             <h2>Confirm your Talind account.</h2>
-            <p class="muted">We sent a confirmation link to <strong>\${esc(email)}</strong>. Open that email, confirm your account, then return to Talind and log in.</p>
+            <p class="muted">We sent a confirmation link to <strong>${esc(email)}</strong>. Open that email, confirm your account, then return to Talind and log in.</p>
             <div class="dialog-actions"><button class="btn" onclick="authScreen('login')">Go to login</button></div>
-          \`;
+          `;
         }
       }else{
         const {data,error}=await talindSupabase.auth.signInWithPassword({email,password});
@@ -288,15 +288,15 @@ function updateAuthHeader(){
   const h=$('#auth-actions');
   if(!h)return;
   if(talindCurrentUser){
-    h.innerHTML=\`
+    h.innerHTML=`
       <button class="btn light" onclick="navigate('profile')">My profile</button>
       <button class="text-button" onclick="demoLogout()">Log out</button>
-    \`;
+    `;
   }else{
-    h.innerHTML=\`
+    h.innerHTML=`
       <button class="text-button" onclick="authScreen('login')">Log in</button>
       <button class="btn" onclick="authScreen('signup')">Sign up</button>
-    \`;
+    `;
   }
 }
 
@@ -324,7 +324,7 @@ profile=function(){
       'YOUR TALIND ACCOUNT',
       'Sign in to build your profile.',
       'Your profile, skills and preferences will be stored securely in your Talind account.'
-    )+\`<section class="panel"><h2>Ready to continue?</h2><p class="muted">Create an account or log in to save your information permanently.</p><div class="workspace-links"><button class="btn" onclick="authScreen('signup')">Sign up</button><button class="btn outline" onclick="authScreen('login')">Log in</button></div></section>\`;
+    )+`<section class="panel"><h2>Ready to continue?</h2><p class="muted">Create an account or log in to save your information permanently.</p><div class="workspace-links"><button class="btn" onclick="authScreen('signup')">Sign up</button><button class="btn outline" onclick="authScreen('login')">Log in</button></div></section>`;
     return;
   }
   cloudBaseProfile();
@@ -392,7 +392,7 @@ const cloudPreviousWorkspace=workspace;
 workspace=function(){
   cloudPreviousWorkspace();
   if(!talindCurrentUser){
-    $('#main').insertAdjacentHTML('afterbegin',\`<div class="notice"><strong>Sign in to save your Talind activity permanently.</strong> <button class="text-button" onclick="authScreen('login')">Log in</button> or <button class="text-button" onclick="authScreen('signup')">create an account</button>.</div>\`);
+    $('#main').insertAdjacentHTML('afterbegin',`<div class="notice"><strong>Sign in to save your Talind activity permanently.</strong> <button class="text-button" onclick="authScreen('login')">Log in</button> or <button class="text-button" onclick="authScreen('signup')">create an account</button>.</div>`);
   }else{
     document.querySelectorAll('.profile-prompt').forEach(el=>{
       el.innerHTML=el.innerHTML.replace(/sample registration/gi,'profile').replace(/Session draft/gi,'Saved draft');
