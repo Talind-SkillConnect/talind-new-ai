@@ -13,15 +13,22 @@ function matchConnection(item){
   const exact=matchState.connections.find(function(c){
     const pair=(c.initiator_user_id===me&&c.target_user_id===t.userId)||(c.target_user_id===me&&c.initiator_user_id===t.userId);
     if(!pair)return false;
-    if(item.kind==='requirement')return c.context_type==='learner_requirement'&&c.context_id===t.contextId;
+    if(c.context_type!==t.contextType)return false;
+    if(t.contextId)return c.context_id===t.contextId;
     return true;
   });
   if(exact)return exact;
-  // Learners should see the existing provider relationship even if it began from a learner requirement.
+
+  // Legacy/fallback relationship: allow the same two users to share a relationship
+  // only when the counterpart role matches the profile currently being viewed.
   return matchState.connections.find(function(c){
-    return (c.initiator_user_id===me&&c.target_user_id===t.userId)||(c.target_user_id===me&&c.initiator_user_id===t.userId);
+    const pair=(c.initiator_user_id===me&&c.target_user_id===t.userId)||(c.target_user_id===me&&c.initiator_user_id===t.userId);
+    if(!pair)return false;
+    const otherRole=c.initiator_user_id===me?c.target_role:c.initiator_role;
+    return otherRole===t.role;
   })||null;
 }
+
 function matchStatusLabel(c){
   if(!c)return 'Not contacted';
   const labels={shortlisted:'Shortlisted',interest_expressed:'Interest expressed',quote_submitted:'Quote submitted',accepted:'Accepted',declined:'Declined',closed:'Closed'};
