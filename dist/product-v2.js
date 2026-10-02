@@ -17,37 +17,21 @@ function v2ConnectionItem(c){
   if(!c||!talindCurrentUser)return null;
   const me=talindCurrentUser.id;
   const other=c.initiator_user_id===me?c.target_user_id:c.initiator_user_id;
+  const publicByUser=function(items){return items.find(function(i){return i.publicRow&&i.publicRow.user_id===other})||null};
+  const reqByUser=function(){return liveRequirementItems().find(function(i){return i.requirementRow&&i.requirementRow.user_id===other})||null};
 
-  if(state.role==='learner'){
-    return liveTeacherItems().find(function(i){
-      return i.publicRow&&i.publicRow.user_id===other;
-    })||null;
+  if(c.context_type==='learner_requirement'&&c.context_id){
+    const exact=liveRequirementItems().find(function(i){return i.requirementRow&&i.requirementRow.id===c.context_id});
+    if(exact)return exact;
   }
+  if(c.context_type==='teacher_profile')return publicByUser(liveTeacherItems());
+  if(c.context_type==='institution_profile')return publicByUser(liveInstitutionItems());
+  if(c.context_type==='training_profile')return publicByUser(liveTrainingItems());
 
-  if(state.role==='teacher'){
-    if(c.context_type==='learner_requirement'&&c.context_id){
-      const exact=liveRequirementItems().find(function(i){
-        return i.requirementRow&&i.requirementRow.id===c.context_id;
-      });
-      if(exact)return exact;
-    }
-    return liveRequirementItems().find(function(i){
-      return i.requirementRow&&i.requirementRow.user_id===other;
-    })||null;
-  }
-
-  if(state.role==='institution'){
-    return liveTeacherItems().find(function(i){
-      return i.publicRow&&i.publicRow.user_id===other;
-    })||null;
-  }
-
-  if(state.role==='training'){
-    return liveRequirementItems().find(function(i){
-      return i.requirementRow&&i.requirementRow.user_id===other;
-    })||null;
-  }
-
+  if(state.role==='learner')return publicByUser(liveTeacherItems())||publicByUser(liveTrainingItems())||publicByUser(liveInstitutionItems());
+  if(state.role==='teacher')return reqByUser()||publicByUser(liveInstitutionItems());
+  if(state.role==='institution')return publicByUser(liveTeacherItems())||publicByUser(liveTrainingItems());
+  if(state.role==='training')return reqByUser()||publicByUser(liveInstitutionItems());
   return null;
 }
 
