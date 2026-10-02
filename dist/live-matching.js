@@ -38,6 +38,16 @@ function liveTeacherItems(){
     x.matchScore=liveMatchScore(x);x.matchReason=liveReason(x);return x;
   }).sort(function(a,b){return b.matchScore-a.matchScore});
 }
+function livePublicProfileItems(role,kind,typeLabel){
+  return (liveDiscovery.profiles||[]).filter(function(p){return p.role===role&&p.is_active&&p.user_id!==talindCurrentUser?.id}).map(function(p,i){
+    const purposes=Array.isArray(p.purposes)?p.purposes:[];
+    const tags=[].concat(Array.isArray(p.skills)?p.skills:[],purposes).filter(Boolean);
+    const x={live:true,kind:kind,key:kind+':'+p.user_id,id:(role==='institution'?820000:830000)+i,name:p.display_name||(role==='institution'?'School / College':'Training Provider'),initials:liveInitials(p.display_name),type:typeLabel,title:p.headline||typeLabel,subtitle:p.city||p.region||'Location not specified',desc:p.bio||(role==='institution'?'Institution profile on Talind':'Training provider profile on Talind'),tags:tags,location:p.city||p.region||p.country||'Not specified',mode:p.mode||'Flexible',price:'Connect through Talind',note:'Published Talind profile',publicRow:p};
+    x.matchScore=liveMatchScore(x);x.matchReason=liveReason(x);return x;
+  }).sort(function(a,b){return b.matchScore-a.matchScore});
+}
+function liveInstitutionItems(){return livePublicProfileItems('institution','institution','School / College')}
+function liveTrainingItems(){return livePublicProfileItems('training','training','Training Provider')}
 function liveRequirementItems(){
   return (liveDiscovery.requirements||[]).filter(function(r){return r.status==='active'&&r.user_id!==talindCurrentUser?.id}).map(function(r,i){
     const d=r.details||{};
@@ -49,7 +59,10 @@ function liveMatchCard(i){
   return '<article class="card"><div class="card-top"><span class="badge">'+esc(i.type)+'</span><span class="badge">'+esc(i.matchReason)+'</span></div><div class="card-body"><div class="identity"><div class="initials">'+esc(i.initials)+'</div><div><h3>'+esc(i.name)+'</h3><small>'+esc(i.subtitle)+'</small></div></div><h3>'+esc(i.title)+'</h3><p class="desc">'+esc(i.desc||'')+'</p><div class="tags">'+(i.tags||[]).slice(0,6).map(function(t){return '<span>'+esc(t)+'</span>'}).join('')+'</div><div class="meta"><span>Location: '+esc(i.location)+'</span><span>Mode: '+esc(i.mode)+'</span></div></div><div class="card-foot"><div class="price">'+esc(i.price)+'<small>'+esc(i.note)+'</small></div><button class="btn light" onclick="liveMatchDetail(\''+i.key+'\')">View match</button></div></article>';
 }
 function liveFind(key){
-  if(String(key).startsWith('teacher:'))return liveTeacherItems().find(function(x){return x.key===key});
+  key=String(key);
+  if(key.startsWith('teacher:'))return liveTeacherItems().find(function(x){return x.key===key});
+  if(key.startsWith('institution:'))return liveInstitutionItems().find(function(x){return x.key===key});
+  if(key.startsWith('training:'))return liveTrainingItems().find(function(x){return x.key===key});
   return liveRequirementItems().find(function(x){return x.key===key});
 }
 function liveMatchDetail(key){
@@ -79,10 +92,32 @@ opportunitySection=function(section){
   return '<section class="opportunity-section"><div class="section-top"><div><h2>'+esc(section.name)+'</h2><p>'+esc(section.why)+'</p></div></div><div class="cards">'+(section.items.length?section.items.slice(0,6).map(function(i){return i.live?liveMatchCard(i):card(i)}).join(''):'<div class="empty"><h3>No matching opportunities yet</h3><p class="muted">Complete your profile with clear skills, location and preferences. New matches will appear as relevant members publish their profiles.</p></div>')+'</div></section>';
 };
 window.opportunitiesForRole=function(){
-  if(state.role==='learner')return [{name:'Teacher & expert matches',why:'Matched from your learning needs, skills, location and preferred mode.',items:liveTeacherItems()}];
-  if(state.role==='teacher')return [{name:'Student / parent requirements',why:'Matched from the skills you can teach and your service preferences.',items:liveRequirementItems()}];
-  if(state.role==='institution')return [{name:'Teacher & expert profiles',why:'Published teacher profiles relevant to your institution.',items:liveTeacherItems()}];
-  if(state.role==='training')return [{name:'Individual learner requirements',why:'Published learner needs relevant to your training expertise.',items:liveRequirementItems()}];
+  const f=record().fields||{},purposes=Array.isArray(f.purposes)?f.purposes:[];
+  if(state.role==='learner'){
+    const sections=[{name:'Teacher & expert matches',why:'Matched from your learning needs, skills, location and preferred mode.',items:liveTeacherItems()}];
+    const wantsAdmission=/admission/i.test([f.needs,f.secondNeed].filter(Boolean).join(' '));
+    const wantsCourses=/tuition|skill|neet|jee|coaching/i.test([f.needs,f.secondNeed,f.goals].filter(Boolean).join(' '));
+    if(wantsCourses||!wantsAdmission)sections.push({name:'Training & coaching providers',why:'Providers offering relevant learning, coaching and skill-development opportunities.',items:liveTrainingItems().filter(function(i){return !i.publicRow.purposes?.length||i.publicRow.purposes.includes('Individual learner enrolment')})});
+    if(wantsAdmission)sections.push({name:'Schools & colleges',why:'Institutions published for admissions and learner discovery.',items:liveInstitutionItems().filter(function(i){return !i.publicRow.purposes?.length||i.publicRow.purposes.includes('Promote admissions')})});
+    return sections;
+  }
+  if(state.role==='teacher'){
+    const sections=[];
+    if(!purposes.length||purposes.includes('Find a job'))sections.push({name:'Hiring institutions',why:'Schools and colleges using Talind to discover teaching talent.',items:liveInstitutionItems().filter(function(i){return !i.publicRow.purposes?.length||i.publicRow.purposes.includes('Hire teachers / professors')})});
+    if(!purposes.length||purposes.includes('Offer tuition / coaching / training'))sections.push({name:'Student / parent requirements',why:'Matched from the skills you can teach and your service preferences.',items:liveRequirementItems()});
+    return sections;
+  }
+  if(state.role==='institution'){
+    const sections=[{name:'Teacher & expert profiles',why:'Published teacher profiles relevant to your institution.',items:liveTeacherItems()}];
+    if(purposes.includes('Training association / partnership'))sections.push({name:'Training partners',why:'Published training providers for workshops, staff development and partnerships.',items:liveTrainingItems().filter(function(i){return !i.publicRow.purposes?.length||i.publicRow.purposes.includes('Institutional partnerships')})});
+    return sections;
+  }
+  if(state.role==='training'){
+    const sections=[];
+    if(!purposes.length||purposes.includes('Individual learner enrolment'))sections.push({name:'Individual learner requirements',why:'Published learner needs relevant to your training expertise.',items:liveRequirementItems()});
+    if(purposes.includes('Institutional partnerships'))sections.push({name:'Institutional partnership opportunities',why:'Schools and colleges seeking training, development or partnership support.',items:liveInstitutionItems().filter(function(i){return i.publicRow.purposes?.includes('Training association / partnership')})});
+    return sections;
+  }
   return [];
 };
 const liveBaseWorkspace=workspace;
@@ -97,14 +132,10 @@ workspace=function(){
 };
 const liveBaseExplore=explore;
 explore=function(){
-  if(state.role==='learner'&&talindCurrentUser){
-    const items=liveTeacherItems();
-    $('#main').innerHTML=intro('TALIND MATCH','Find teachers and experts matched to your goals.','Matches use published skills, location and learning preferences.','Free for students & parents')+'<div class="section-top"><div><h2>Teacher & expert matches</h2><p>Relevant published profiles from Talind.</p></div><span class="count">'+items.length+' results</span></div><div class="cards">'+(items.length?items.map(liveMatchCard).join(''):'<div class="empty"><h3>No matches yet</h3><p class="muted">Complete your profile and learning requirements. Matching profiles will appear here when available.</p></div>');
-    side('explore');return;
-  }
-  if(state.role==='teacher'&&talindCurrentUser){
-    const items=liveRequirementItems();
-    $('#main').innerHTML=intro('TALIND MATCH','Find learners who need your skills.','Published requirements are matched to the skills and services in your profile.','Job seeking is free')+'<div class="section-top"><div><h2>Student / parent requirements</h2><p>Relevant learning needs from Talind.</p></div><span class="count">'+items.length+' results</span></div><div class="cards">'+(items.length?items.map(liveMatchCard).join(''):'<div class="empty"><h3>No matches yet</h3><p class="muted">Complete your teaching skills and service preferences. Relevant learner requirements will appear here.</p></div>');
+  if(talindCurrentUser&&['learner','teacher','institution'].includes(state.role)){
+    const sections=opportunitiesForRole();
+    const cfg={learner:['TALIND MATCH','Find the right people and institutions for your next step.','Matches use your requirements, skills, location and preferred mode.','Free for students & parents'],teacher:['TALIND MATCH','Turn your skills into work and service opportunities.','Explore hiring institutions and learner requirements relevant to your profile.','Job seeking is free'],institution:['TALIND MATCH','Build the team and partnerships your institution needs.','Discover teachers, experts and training providers through relevant profile signals.','Institution membership'] }[state.role];
+    $('#main').innerHTML=intro(cfg[0],cfg[1],cfg[2],cfg[3])+sections.map(opportunitySection).join('');
     side('explore');return;
   }
   liveBaseExplore();

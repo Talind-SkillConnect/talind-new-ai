@@ -3,6 +3,8 @@ const matchState={connections:[],memberships:[]};
 
 function matchTarget(item){
   if(item.kind==='teacher')return {userId:item.publicRow.user_id,role:'teacher',contextType:'teacher_profile',contextId:null};
+  if(item.kind==='institution')return {userId:item.publicRow.user_id,role:'institution',contextType:'institution_profile',contextId:null};
+  if(item.kind==='training')return {userId:item.publicRow.user_id,role:'training',contextType:'training_profile',contextId:null};
   if(item.kind==='requirement')return {userId:item.requirementRow.user_id,role:'learner',contextType:'learner_requirement',contextId:item.requirementRow.id};
   return null;
 }
@@ -11,15 +13,22 @@ function matchConnection(item){
   const exact=matchState.connections.find(function(c){
     const pair=(c.initiator_user_id===me&&c.target_user_id===t.userId)||(c.target_user_id===me&&c.initiator_user_id===t.userId);
     if(!pair)return false;
-    if(item.kind==='requirement')return c.context_type==='learner_requirement'&&c.context_id===t.contextId;
+    if(c.context_type!==t.contextType)return false;
+    if(t.contextId)return c.context_id===t.contextId;
     return true;
   });
   if(exact)return exact;
-  // Learners should see the existing provider relationship even if it began from a learner requirement.
+
+  // Legacy/fallback relationship: allow the same two users to share a relationship
+  // only when the counterpart role matches the profile currently being viewed.
   return matchState.connections.find(function(c){
-    return (c.initiator_user_id===me&&c.target_user_id===t.userId)||(c.target_user_id===me&&c.initiator_user_id===t.userId);
+    const pair=(c.initiator_user_id===me&&c.target_user_id===t.userId)||(c.target_user_id===me&&c.initiator_user_id===t.userId);
+    if(!pair)return false;
+    const otherRole=c.initiator_user_id===me?c.target_role:c.initiator_role;
+    return otherRole===t.role;
   })||null;
 }
+
 function matchStatusLabel(c){
   if(!c)return 'Not contacted';
   const labels={shortlisted:'Shortlisted',interest_expressed:'Interest expressed',quote_submitted:'Quote submitted',accepted:'Accepted',declined:'Declined',closed:'Closed'};

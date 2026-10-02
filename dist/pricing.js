@@ -1,8 +1,8 @@
 const billing={audience:'learner',orders:[]};
 const paidPlans=[
-{id:'teacher-services',role:'teacher',name:'Teach & Earn',purpose:'Coaching & other services',price:499,features:['Up to 3 active service listings','Matching learner requirements','Enquiries and connection requests']},
-{id:'institution',role:'institution',name:'Institution Membership',purpose:'Hiring & admissions',price:1999,features:['Post staffing requirements','Discover teacher profiles','Promote admissions']},
-{id:'training',role:'training',name:'Training Provider',purpose:'Learners & institutions',price:999,features:['Publish courses','Reach learner requirements','Explore institutional opportunities']}
+{id:'teacher-services',role:'teacher',name:'Teach & Earn',purpose:'Tuition, coaching & expert services',price:499,features:['Up to 3 active service listings','Match with learner requirements','Chat, quote and track engagement status','Direct learner contact after accepted quote, consent and professional agreement']},
+{id:'institution',role:'institution',name:'Institution Membership',purpose:'Hiring, admissions & partnerships',price:1999,features:['Post staffing requirements','Discover and shortlist teacher profiles','Manage hiring conversations and direct contact','Promote admissions and explore training partners']},
+{id:'training',role:'training',name:'Training Provider',purpose:'Learners & institutions',price:999,features:['Publish detailed courses and programmes','Match with learner requirements','Explore institutional partnerships','Use Talind chat and approved direct-contact workflows']}
 ];
 function money(n){return '₹'+Number(n).toLocaleString('en-IN')}
 function chooseAudience(a){billing.audience=a;plans()}

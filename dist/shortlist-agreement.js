@@ -93,12 +93,18 @@ matchViewContact=async function(key){
   const t=matchTarget(item);if(!t)return;
   try{
     const c=matchConnection(item);
-    const res=await talindSupabase.rpc('get_match_contact_v2',{
-      p_connection_id:c?c.id:null,
-      p_target_user:t.userId,
-      p_requester_role:state.role,
-      p_target_role:t.role
-    });
+    const res=(state.role==='learner'&&t.role!=='teacher')
+      ?await talindSupabase.rpc('get_match_contact',{
+          p_target_user:t.userId,
+          p_requester_role:state.role,
+          p_target_role:t.role
+        })
+      :await talindSupabase.rpc('get_match_contact_v2',{
+          p_connection_id:c?c.id:null,
+          p_target_user:t.userId,
+          p_requester_role:state.role,
+          p_target_role:t.role
+        });
     if(res.error)throw res.error;
     const row=(res.data||[])[0];
 
@@ -165,19 +171,20 @@ matchActions=function(item){
 function shortlistRelationshipItems(){
   if(!talindCurrentUser)return [];
   const active=matchState.connections.filter(function(c){return !['declined','closed'].includes(c.status)});
+  const pools=state.role==='learner'
+    ?[liveTeacherItems(),liveTrainingItems(),liveInstitutionItems()]
+    :state.role==='teacher'
+      ?[liveRequirementItems(),liveInstitutionItems()]
+      :state.role==='institution'
+        ?[liveTeacherItems(),liveTrainingItems()]
+        :state.role==='training'
+          ?[liveRequirementItems(),liveInstitutionItems()]
+          :[];
   const out=[];
-
-  if(state.role==='learner'){
-    liveTeacherItems().forEach(function(item){
-      const c=matchConnection(item);
-      if(c&&active.some(function(x){return x.id===c.id}))out.push(item);
-    });
-  }else if(state.role==='teacher'){
-    liveRequirementItems().forEach(function(item){
-      const c=matchConnection(item);
-      if(c&&active.some(function(x){return x.id===c.id}))out.push(item);
-    });
-  }
+  pools.flat().forEach(function(item){
+    const row=matchConnection(item);
+    if(row&&active.some(function(x){return x.id===row.id})&&!out.some(function(x){return x.key===item.key}))out.push(item);
+  });
   return out;
 }
 
