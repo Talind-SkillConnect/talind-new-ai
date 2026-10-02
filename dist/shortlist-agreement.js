@@ -165,19 +165,20 @@ matchActions=function(item){
 function shortlistRelationshipItems(){
   if(!talindCurrentUser)return [];
   const active=matchState.connections.filter(function(c){return !['declined','closed'].includes(c.status)});
+  const pools=state.role==='learner'
+    ?[liveTeacherItems(),liveTrainingItems(),liveInstitutionItems()]
+    :state.role==='teacher'
+      ?[liveRequirementItems(),liveInstitutionItems()]
+      :state.role==='institution'
+        ?[liveTeacherItems(),liveTrainingItems()]
+        :state.role==='training'
+          ?[liveRequirementItems(),liveInstitutionItems()]
+          :[];
   const out=[];
-
-  if(state.role==='learner'){
-    liveTeacherItems().forEach(function(item){
-      const c=matchConnection(item);
-      if(c&&active.some(function(x){return x.id===c.id}))out.push(item);
-    });
-  }else if(state.role==='teacher'){
-    liveRequirementItems().forEach(function(item){
-      const c=matchConnection(item);
-      if(c&&active.some(function(x){return x.id===c.id}))out.push(item);
-    });
-  }
+  pools.flat().forEach(function(item){
+    const row=matchConnection(item);
+    if(row&&active.some(function(x){return x.id===row.id})&&!out.some(function(x){return x.key===item.key}))out.push(item);
+  });
   return out;
 }
 
