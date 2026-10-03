@@ -21,14 +21,10 @@ function cleanRoleContext(){
     label.style.display='none';
     select.style.display='none';
 
-    const roles=(window.talindAccountRoles||[]).filter(function(r){return roleNames[r]});
-    const canSwitch=roles.length>1;
     box.style.display='block';
     box.innerHTML=
       '<span class="role-caption">ACCOUNT TYPE</span>'+
-      '<div class="role-current"><strong>'+esc(roleNames[state.role])+'</strong>'+
-      (canSwitch?'<button class="text-button role-switch" type="button" onclick="openRegisteredRoleSwitch()">Switch</button>':'')+
-      '</div>';
+      '<div class="role-current"><strong>'+esc(roleNames[state.role])+'</strong></div>';
   }else{
     document.body.classList.remove('signed-in');
     box.style.display='none';
@@ -44,20 +40,6 @@ function cleanRoleContext(){
 
   const membership=document.querySelector('header nav a[href="#plans"]');
   if(membership)membership.style.display=(talindCurrentUser&&state.role==='learner')?'none':'';
-}
-
-function openRegisteredRoleSwitch(){
-  const roles=(window.talindAccountRoles||[]).filter(function(r){return roleNames[r]});
-  if(roles.length<2)return;
-  modal(
-    '<span class="eyebrow">SWITCH ACCOUNT TYPE</span>'+
-    '<h2>Choose one of your registered Talind profiles.</h2>'+
-    '<div class="role-switch-list">'+
-      roles.map(function(r){
-        return '<button class="role-option '+(r===state.role?'active':'')+'" onclick="$(\'#modal\').close();changeRole(\''+r+'\')"><strong>'+esc(roleNames[r])+'</strong>'+(r===state.role?'<span>Current</span>':'')+'</button>';
-      }).join('')+
-    '</div>'
-  );
 }
 
 function cleanWorkspaceCopy(){
