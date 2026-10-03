@@ -55,6 +55,11 @@ function matchMembershipActive(plan){
     return m.plan_code===plan&&m.status==='active'&&start&&end;
   });
 }
+function learnerTeacherContactReady(item){
+  if(!(state.role==='learner'&&item&&item.kind==='teacher'))return true;
+  const c=matchConnection(item);
+  return !!c&&c.status==='accepted';
+}
 function teacherServiceLocked(item){
   return state.role==='teacher'&&item&&item.kind==='requirement'&&!matchMembershipActive('teacher-services');
 }
@@ -155,7 +160,8 @@ async function matchOpenChat(key){
       const mine=m.sender_user_id===talindCurrentUser.id;
       return '<div class="row"><div><strong>'+(mine?'You':'Match')+'</strong><p>'+esc(m.body)+'</p><small>'+new Date(m.created_at).toLocaleString()+'</small></div></div>';
     }).join(''):'<p class="muted">No messages yet. Start the conversation about this match.</p>';
-    modal('<span class="eyebrow">TALIND CHAT</span><h2>'+esc(item.name)+'</h2><div style="max-height:300px;overflow:auto;margin-bottom:18px">'+history+'</div><form id="match-chat-form"><label class="full">Message<textarea name="body" required maxlength="2000" placeholder="Write a clear message about this match."></textarea></label><div class="dialog-actions"><button class="btn" type="submit">Send message</button><button class="btn outline" type="button" onclick="matchViewContact(\''+key+'\')">View contact</button></div></form><p id="chat-error" class="form-error"></p>');
+    const contactButton=learnerTeacherContactReady(item)?'<button class="btn outline" type="button" onclick="matchViewContact(\''+key+'\')">View contact</button>':'';
+    modal('<span class="eyebrow">TALIND CHAT</span><h2>'+esc(item.name)+'</h2><div style="max-height:300px;overflow:auto;margin-bottom:18px">'+history+'</div><form id="match-chat-form"><label class="full">Message<textarea name="body" required maxlength="2000" placeholder="Write a clear message about this match."></textarea></label><div class="dialog-actions"><button class="btn" type="submit">Send message</button>'+contactButton+'</div></form><p id="chat-error" class="form-error"></p>');
     $('#match-chat-form').onsubmit=async function(e){
       e.preventDefault();const body=String(new FormData(e.target).get('body')||'').trim();if(!body)return;
       try{
