@@ -98,7 +98,10 @@ function v2ActivityActions(c,item){
   if(item){
     out.push('<button class="btn light" onclick="liveMatchDetail(\''+item.key+'\')">Open match</button>');
     if(teacherServiceLocked(item)){
-      out.push('<button class="btn" onclick="openTeacherServicesMembership()">Activate Teacher Services</button>');
+      if(teacherCanReplyToStudent(item)){
+        out.push('<button class="btn" onclick="matchOpenChat(\''+item.key+'\')">Reply to student</button>');
+      }
+      out.push('<button class="btn outline" onclick="openTeacherServicesMembership()">Activate Teacher Services</button>');
       if(c.status==='closed')out.push('<button class="btn outline" onclick="v2ReopenConnection(\''+c.id+'\')">Reopen</button>');
       return out.join('');
     }

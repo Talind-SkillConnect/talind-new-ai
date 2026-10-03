@@ -1,5 +1,5 @@
 // Talind persistent relationship status, chat and contact-access controls.
-const matchState={connections:[],memberships:[]};
+const matchState={connections:[],memberships:[],inboundConnectionIds:new Set()};
 
 function matchTarget(item){
   if(item.kind==='teacher')return {userId:item.publicRow.user_id,role:'teacher',contextType:'teacher_profile',contextId:null};
@@ -36,7 +36,12 @@ function matchStatusLabel(c){
   return c.last_message_at?'Contacted · '+base:base;
 }
 async function matchLoadState(){
-  if(!talindCurrentUser){matchState.connections=[];matchState.memberships=[];return}
+  if(!talindCurrentUser){
+    matchState.connections=[];
+    matchState.memberships=[];
+    matchState.inboundConnectionIds=new Set();
+    return;
+  }
   const uid=talindCurrentUser.id;
   const out=await Promise.all([
     talindSupabase.from('match_connections').select('*').or('initiator_user_id.eq.'+uid+',target_user_id.eq.'+uid).order('updated_at',{ascending:false}),
@@ -46,6 +51,19 @@ async function matchLoadState(){
   if(out[1].error)throw out[1].error;
   matchState.connections=out[0].data||[];
   matchState.memberships=out[1].data||[];
+
+  const ids=matchState.connections.map(function(x){return x.id}).filter(Boolean);
+  matchState.inboundConnectionIds=new Set();
+  if(ids.length){
+    const messages=await talindSupabase
+      .from('match_messages')
+      .select('connection_id,sender_user_id')
+      .in('connection_id',ids);
+    if(messages.error)throw messages.error;
+    (messages.data||[]).forEach(function(m){
+      if(m.sender_user_id!==uid)matchState.inboundConnectionIds.add(m.connection_id);
+    });
+  }
 }
 function matchMembershipActive(plan){
   const now=Date.now();
@@ -63,6 +81,12 @@ function learnerTeacherContactReady(item){
 function teacherServiceLocked(item){
   return state.role==='teacher'&&item&&item.kind==='requirement'&&!matchMembershipActive('teacher-services');
 }
+function teacherCanReplyToStudent(item){
+  if(!teacherServiceLocked(item))return true;
+  const c=matchConnection(item);
+  return !!c&&matchState.inboundConnectionIds.has(c.id);
+}
+
 function openTeacherServicesMembership(){
   billing.audience='teacher';
   navigate('plans');
@@ -150,7 +174,10 @@ async function matchViewContact(key){
 }
 async function matchOpenChat(key){
   const item=liveFind(key);if(!item)return;
-  if(teacherServiceLocked(item)){openTeacherServicesMembership();return;}
+  if(teacherServiceLocked(item)&&!teacherCanReplyToStudent(item)){
+    openTeacherServicesMembership();
+    return;
+  }
   try{
     const c=await matchEnsureConnection(item,'interest_expressed');
     const res=await talindSupabase.from('match_messages').select('*').eq('connection_id',c.id).order('created_at',{ascending:true});
