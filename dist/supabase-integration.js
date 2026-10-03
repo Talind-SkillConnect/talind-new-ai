@@ -176,25 +176,10 @@ async function cloudSaveCurrentRole({complete=false}={}){
 
     // Publish only safe discovery fields; contact details remain private in profiles/role_profiles.
     try{
-      let publicPurposes=Array.isArray(f.purposes)?[...f.purposes]:[];
-      if(role==='teacher'&&publicPurposes.includes('Offer tuition / coaching / training')){
-        const {data:serviceMemberships,error:serviceMembershipError}=await talindSupabase
-          .from('memberships')
-          .select('status,starts_at,ends_at')
-          .eq('user_id',uid)
-          .eq('plan_code','teacher-services')
-          .eq('status','active');
-        if(serviceMembershipError)throw serviceMembershipError;
-        const now=Date.now();
-        const serviceActive=(serviceMemberships||[]).some(function(m){
-          const starts=!m.starts_at||new Date(m.starts_at).getTime()<=now;
-          const ends=!m.ends_at||new Date(m.ends_at).getTime()>now;
-          return starts&&ends;
-        });
-        if(!serviceActive){
-          publicPurposes=publicPurposes.filter(function(p){return p!=='Offer tuition / coaching / training'});
-        }
-      }
+      // Keep the teacher's selected service purpose discoverable so learners can
+      // find relevant experts. Paid membership is enforced when the teacher
+      // tries to engage, quote, chat back or provide the service.
+      const publicPurposes=Array.isArray(f.purposes)?[...f.purposes]:[];
       const publicProfile={
         user_id:uid,
         role,
