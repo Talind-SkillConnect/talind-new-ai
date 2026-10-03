@@ -151,7 +151,7 @@ matchActions=function(item){
   if(!c||c.status==='shortlisted')parts.push('<button class="btn" onclick="matchSetStatus(\''+item.key+'\',\'interest_expressed\')">Express interest</button>');
 
   parts.push('<button class="btn light" onclick="matchOpenChat(\''+item.key+'\')">Chat</button>');
-  parts.push('<button class="btn light" onclick="matchViewContact(\''+item.key+'\')">View contact</button>');
+  if(learnerTeacherContactReady(item))parts.push('<button class="btn light" onclick="matchViewContact(\''+item.key+'\')">View contact</button>');
 
   if(state.role==='teacher'&&item.kind==='requirement'&&(!c||c.status!=='accepted')){
     parts.push('<button class="btn outline" onclick="matchSubmitQuote(\''+item.key+'\')">Submit quote</button>');
