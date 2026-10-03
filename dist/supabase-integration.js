@@ -96,11 +96,12 @@ async function cloudLoadUser(){
   }
 
   const preferred=talindCurrentUser.user_metadata?.role;
-  const available=roleRows.map(r=>r.role);
-  window.talindAccountRoles=[...new Set(available.filter(r=>Object.prototype.hasOwnProperty.call(roleNames,r)))];
-  const selected=available.includes(state.role)?state.role:
-    available.includes(preferred)?preferred:
+  const available=roleRows.map(r=>r.role).filter(r=>Object.prototype.hasOwnProperty.call(roleNames,r));
+  const selected=available.includes(preferred)?preferred:
     available[0]||preferred||'learner';
+  // One signed-in account uses one primary account type. Legacy extra role rows
+  // are ignored in the UI so analytics and permissions stay attributable.
+  window.talindAccountRoles=[selected];
 
   state.role=Object.prototype.hasOwnProperty.call(roleNames,selected)?selected:'learner';
   $('#role').value=state.role;
