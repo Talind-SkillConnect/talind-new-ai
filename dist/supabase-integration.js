@@ -20,6 +20,7 @@ const talindSupabase=window.supabase.createClient(
 window.talindSupabase=talindSupabase;
 let talindCurrentUser=null;
 let talindCloudBusy=false;
+window.talindAccountRoles=[];
 
 function cloudEmptyRecord(){
   return {fields:{},skills:[],evidence:[],links:[],openings:[],courses:[],complete:false};
@@ -96,6 +97,7 @@ async function cloudLoadUser(){
 
   const preferred=talindCurrentUser.user_metadata?.role;
   const available=roleRows.map(r=>r.role);
+  window.talindAccountRoles=[...new Set(available.filter(r=>Object.prototype.hasOwnProperty.call(roleNames,r)))];
   const selected=available.includes(state.role)?state.role:
     available.includes(preferred)?preferred:
     available[0]||preferred||'learner';
@@ -310,6 +312,11 @@ async function cloudHandleSession(session){
   }else{
     registration.active=null;
     registration.records={};
+    window.talindAccountRoles=[];
+  }
+
+  if(talindCurrentUser&&location.search.includes('code=')){
+    history.replaceState({},document.title,location.pathname+(location.hash||''));
   }
 
   updateAuthHeader();
@@ -492,6 +499,10 @@ completeProfile=async function(){
 // Persist when the user switches between stakeholder profiles.
 const cloudPreviousChangeRole=changeRole;
 changeRole=async function(r){
+  if(talindCurrentUser&&window.talindAccountRoles.length&&!window.talindAccountRoles.includes(r)){
+    toast('This account is registered as '+roleNames[state.role]+'.');
+    return;
+  }
   if(talindCurrentUser)await cloudSaveCurrentRole();
   cloudPreviousChangeRole(r);
   if(talindCurrentUser&&!registration.records[r])registration.records[r]=cloudEmptyRecord();
