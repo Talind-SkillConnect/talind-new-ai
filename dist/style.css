@@ -19,3 +19,56 @@
 footer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 footer .text-button{font-size:12px;padding:0}
 @media(max-width:760px){.activity-grid{grid-template-columns:1fr}.activity-card .section-top{display:block}.activity-card .section-top .badge{display:inline-block;margin-top:10px}.profile-visibility .section-top{display:block}.profile-visibility .btn{margin-top:12px}}
+
+/* Talind Clean UI V3 */
+.signed-in .app-layout{grid-template-columns:220px minmax(0,1fr)}
+.signed-in aside{padding:24px 18px}
+.role-context{margin:0 0 20px;padding:13px 14px;border:1px solid var(--line);border-radius:11px;background:#f7faf8}
+.role-caption{display:block;font-size:10px;letter-spacing:.12em;font-weight:800;color:var(--muted);margin-bottom:6px}
+.role-current{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.role-current strong{font:700 14px 'Manrope',Arial,sans-serif}
+.role-switch{font-size:12px;padding:2px 0}
+.role-switch-list{display:grid;gap:10px;margin-top:22px}
+.role-option{width:100%;border:1px solid var(--line);border-radius:10px;background:white;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;text-align:left;color:var(--ink)}
+.role-option.active{border-color:#8ebbb0;background:#eef6f2}
+.role-option span{font-size:11px;color:var(--green);font-weight:700}
+.signed-in .side-link{padding:12px 13px;margin-bottom:4px}
+.clean-workspace-head{display:flex;align-items:flex-start;justify-content:space-between;gap:28px;margin-bottom:20px}
+.clean-workspace-head h1{font-size:36px;margin:0 0 7px;letter-spacing:-1.2px}
+.clean-workspace-head p{margin:0;color:var(--muted);max-width:720px;line-height:1.55}
+.clean-workspace-head>.workspace-links{padding-top:2px;justify-content:flex-end}
+.clean-signals{display:flex;gap:6px;flex-wrap:wrap;margin-top:13px}
+.clean-signals span{background:#edf4f1;border:1px solid #dfeae6;color:#315e53;padding:5px 8px;border-radius:6px;font-size:11px}
+.clean-status-row{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:18px 0 24px}
+.clean-status-row>div{background:white;border:1px solid var(--line);border-radius:10px;padding:13px 14px}
+.clean-status-row strong{display:block;font:700 17px 'Manrope',Arial,sans-serif;margin-bottom:3px}
+.clean-status-row span{font-size:11px;color:var(--muted)}
+.clean-notice{margin:14px 0 20px}
+.clean-next{margin:24px 0}
+.clean-next h2{font-size:20px;margin-bottom:12px}
+.clean-opportunities .opportunity-section{margin:28px 0}
+.clean-opportunities .section-top{margin-bottom:14px}
+.clean-opportunities .section-top h2{font-size:21px}
+.clean-opportunities .section-top p{max-width:720px}
+.clean-manage{display:flex;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:20px;margin-top:26px}
+.clean-manage a{font-size:13px;font-weight:700;color:var(--green)}
+.signed-in main{padding-top:28px}
+.signed-in .intro{margin-bottom:20px}
+.signed-in h1{font-size:clamp(28px,2.4vw,38px)}
+.signed-in .panel{padding:23px}
+.signed-in .aside-note,.signed-in .aside-bottom{display:none!important}
+@media(max-width:1000px){
+  .clean-workspace-head{display:block}
+  .clean-workspace-head>.workspace-links{margin-top:16px;justify-content:flex-start}
+  .clean-status-row{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:760px){
+  .signed-in .app-layout{display:block}
+  .signed-in aside{padding:12px 16px}
+  .role-context{margin:0 0 10px;padding:10px 12px}
+  .role-current strong{font-size:13px}
+  .clean-workspace-head h1{font-size:29px}
+  .clean-status-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .clean-status-row>div{padding:11px 12px}
+  .clean-workspace-head>.workspace-links .btn{flex:1}
+}
