@@ -331,7 +331,7 @@ function talindSafetyGuide(){
       '<li>Use Talind chat to maintain a clear record until both parties are comfortable with direct contact.</li>'+
       '<li>Report inappropriate, misleading or unsafe behaviour.</li>'+
     '</ul></section>'+
-    '<p class="bottom-note">These platform rules support safer use of Talind. Formal legal terms, privacy policy, refunds and service-provider obligations should be reviewed before commercial launch.</p>'
+    '<p class="bottom-note">These platform rules work together with Talind’s Terms of Use, Privacy Policy and applicable service/refund terms.</p>'
   );
 }
 
@@ -340,7 +340,7 @@ render=function(){
   v2BaseRender();
   const footer=$('#main footer');
   if(footer){
-    footer.innerHTML='talind · Skills. Opportunities. Growth. <button class="text-button" onclick="talindSafetyGuide()">Safety & professional conduct</button>';
+    footer.innerHTML='<span>talind · Skills. Opportunities. Growth.</span><nav class="legal-links" aria-label="Legal and support"><a href="#privacy">Privacy</a><a href="#terms">Terms</a><a href="#refunds">Refunds</a><a href="#grievance">Contact & grievance</a><button class="text-button" onclick="talindSafetyGuide()">Safety</button></nav>';
   }
 };
 
