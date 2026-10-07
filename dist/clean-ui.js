@@ -716,3 +716,215 @@ cleanPageChrome=function(){
     }
   }
 };
+
+
+// Talind Institution Journey V7
+// Separates the School / College account into hiring, admissions and partnership
+// workflows. Existing Supabase membership and contact-access rules remain intact.
+
+function institutionJourneyData(){
+  const r=record(),f=r.fields||{};
+  const purposes=typeof selectedPurposes==='function'?selectedPurposes():[];
+  const conns=typeof v2RoleConnections==='function'?v2RoleConnections():[];
+  const teachers=typeof liveTeacherItems==='function'?liveTeacherItems():[];
+  const providers=typeof liveTrainingItems==='function'?liveTrainingItems():[];
+  const membership=typeof matchMembershipActive==='function'&&matchMembershipActive('institution');
+  const teacherConns=conns.filter(function(c){return c.context_type==='teacher_profile'&&c.status!=='closed'});
+  const providerConns=conns.filter(function(c){return c.context_type==='training_profile'&&c.status!=='closed'});
+  const admissionReady=purposes.includes('Promote admissions')&&!!f.admissionGrades&&!!f.admissionCycle;
+  return {
+    r:r,f:f,purposes:purposes,membership:membership,
+    teachers:teachers,providers:providers,
+    teacherConns:teacherConns,providerConns:providerConns,
+    admissionReady:admissionReady,
+    openings:Array.isArray(r.openings)?r.openings:[]
+  };
+}
+
+function institutionPurposeHTML(){
+  const d=institutionJourneyData();
+  const hiring=d.purposes.includes('Hire teachers / professors');
+  const admissions=d.purposes.includes('Promote admissions');
+  const partnerships=d.purposes.includes('Training association / partnership');
+  const memberBadge='<span class="institution-plan-pill '+(d.membership?'active':'')+'">'+(d.membership?'MEMBERSHIP ACTIVE':'MEMBERSHIP')+'</span>';
+
+  return '<section class="institution-purpose-grid">'+
+    '<div class="institution-purpose-card hiring">'+
+      '<div class="institution-purpose-head"><span class="institution-purpose-no">01</span><div><span class="eyebrow">HIRING</span><h2>Build your teaching team</h2></div>'+memberBadge+'</div>'+
+      '<p>Post clear vacancies, discover relevant teachers and manage recruitment conversations in one place.</p>'+
+      '<div class="institution-purpose-progress">'+
+        '<span class="'+(hiring?'done':'')+'">Hiring enabled '+(hiring?'✓':'')+'</span>'+
+        '<span class="'+(d.openings.length?'done':'')+'">'+d.openings.length+' job opening'+(d.openings.length===1?'':'s')+'</span>'+
+        '<span class="'+(d.teacherConns.length?'done':'')+'">'+d.teacherConns.length+' candidate conversation'+(d.teacherConns.length===1?'':'s')+'</span>'+
+      '</div>'+
+      '<div class="workspace-links">'+
+        (!hiring
+          ?'<button class="btn outline" onclick="startInstitutionPurpose(\'Hire teachers / professors\')">Enable hiring</button>'
+          :'<button class="btn" onclick="navigate(\'explore\')">Discover teachers</button><button class="btn outline" onclick="startInstitutionPurpose(\'Hire teachers / professors\')">Manage openings</button>')+
+      '</div>'+
+    '</div>'+
+    '<div class="institution-purpose-card admissions">'+
+      '<div class="institution-purpose-head"><span class="institution-purpose-no">02</span><div><span class="eyebrow">ADMISSIONS</span><h2>Reach students & parents</h2></div>'+memberBadge+'</div>'+
+      '<p>Present your institution, programmes, intake and admission details so relevant families can discover you through Talind.</p>'+
+      '<div class="institution-purpose-progress">'+
+        '<span class="'+(admissions?'done':'')+'">Admissions enabled '+(admissions?'✓':'')+'</span>'+
+        '<span class="'+(d.admissionReady?'done':'')+'">Admission details '+(d.admissionReady?'ready ✓':'to complete')+'</span>'+
+        '<span class="'+(d.r.complete?'done':'')+'">Institution profile '+(d.r.complete?'ready ✓':'in progress')+'</span>'+
+      '</div>'+
+      '<div class="workspace-links">'+
+        (!admissions
+          ?'<button class="btn outline" onclick="startInstitutionPurpose(\'Promote admissions\')">Enable admissions</button>'
+          :'<button class="btn" onclick="startInstitutionPurpose(\'Promote admissions\')">Manage admission details</button>')+
+      '</div>'+
+    '</div>'+
+    '<div class="institution-purpose-card partnerships">'+
+      '<div class="institution-purpose-head"><span class="institution-purpose-no">03</span><div><span class="eyebrow">TRAINING & PARTNERSHIPS</span><h2>Find training partners</h2></div>'+memberBadge+'</div>'+
+      '<p>Discover providers for teacher development, student programmes, workshops and longer-term institutional partnerships.</p>'+
+      '<div class="institution-purpose-progress">'+
+        '<span class="'+(partnerships?'done':'')+'">Partnerships enabled '+(partnerships?'✓':'')+'</span>'+
+        '<span class="'+(d.providers.length?'done':'')+'">'+d.providers.length+' provider match'+(d.providers.length===1?'':'es')+'</span>'+
+        '<span class="'+(d.providerConns.length?'done':'')+'">'+d.providerConns.length+' active conversation'+(d.providerConns.length===1?'':'s')+'</span>'+
+      '</div>'+
+      '<div class="workspace-links">'+
+        (!partnerships
+          ?'<button class="btn outline" onclick="startInstitutionPurpose(\'Training association / partnership\')">Enable partnerships</button>'
+          :'<button class="btn" onclick="navigate(\'explore\')">Explore training partners</button>')+
+      '</div>'+
+    '</div>'+
+  '</section>'+
+  (!d.membership
+    ?'<div class="notice institution-membership-note"><strong>Your institution profile can be prepared now.</strong> Institution Membership unlocks the commercial hiring, admissions and partnership experience. <button class="text-button" onclick="billing.audience=\'institution\';navigate(\'plans\')">View membership</button></div>'
+    :'');
+}
+
+function institutionMatchActions(item){
+  const c=matchConnection(item),member=matchMembershipActive('institution'),parts=[];
+  const isTeacher=item.kind==='teacher';
+  const noun=isTeacher?'teacher':'training provider';
+  const status=!c
+    ?(isTeacher?'Teacher match':'Training partner')
+    :c.status==='shortlisted'?'Shortlisted'
+    :c.status==='interest_expressed'?'Conversation started'
+    :c.status==='accepted'?'Confirmed'
+    :matchStatusLabel(c);
+
+  if(!c)parts.push('<button class="btn outline" onclick="matchSetStatus(\''+item.key+'\',\'shortlisted\')">Shortlist '+noun+'</button>');
+
+  if(member){
+    if(!c||c.status!=='closed')parts.push('<button class="btn" onclick="matchOpenChat(\''+item.key+'\')">'+(c&&c.last_message_at?'Open conversation':'Start conversation')+'</button>');
+    if(c)parts.push('<button class="btn outline" onclick="matchViewContact(\''+item.key+'\')">View contact</button>');
+  }else{
+    parts.push('<button class="btn" onclick="billing.audience=\'institution\';navigate(\'plans\')">Activate Institution Membership</button>');
+  }
+
+  return '<div class="institution-match-state"><span class="badge">'+esc(status)+'</span>'+
+    '<span class="'+(member?'institution-access active':'institution-access')+'">'+(member?'Membership active':'Membership required to contact')+'</span></div>'+
+    '<div class="dialog-actions institution-match-actions">'+parts.join('')+'</div>';
+}
+
+const talindInstitutionMatchActionsBase=matchActions;
+matchActions=function(item){
+  if(state.role==='institution'&&item&&['teacher','training'].includes(item.kind))return institutionMatchActions(item);
+  return talindInstitutionMatchActionsBase(item);
+};
+
+const talindInstitutionCardBase=liveMatchCard;
+liveMatchCard=function(i){
+  if(!(state.role==='institution'&&i&&['teacher','training'].includes(i.kind)))return talindInstitutionCardBase(i);
+  const c=matchConnection(i),member=matchMembershipActive('institution');
+  const isTeacher=i.kind==='teacher';
+  const status=!c?(isTeacher?'Teacher match':'Training partner')
+    :c.status==='shortlisted'?'Shortlisted'
+    :c.status==='interest_expressed'?'Conversation started'
+    :c.status==='accepted'?'Confirmed'
+    :matchStatusLabel(c);
+
+  return '<article class="card institution-match-card '+(member?'':'locked')+'">'+
+    '<div class="card-top"><span class="badge">'+esc(status)+'</span><span class="'+(member?'institution-access active':'institution-access')+'">'+(member?'Membership active':'Preview available')+'</span></div>'+
+    '<div class="card-body">'+
+      '<div class="identity"><div class="initials">'+esc(i.initials)+'</div><div><h3>'+esc(i.name)+'</h3><small>'+esc(i.subtitle)+'</small></div></div>'+
+      '<h3>'+esc(i.title)+'</h3><p class="desc">'+esc(i.desc||'')+'</p>'+
+      '<div class="tags">'+(i.tags||[]).slice(0,6).map(function(t){return '<span>'+esc(t)+'</span>'}).join('')+'</div>'+
+      '<div class="meta"><span>'+esc(i.location)+'</span><span>'+esc(i.mode)+'</span></div>'+
+    '</div>'+
+    '<div class="card-foot"><div class="price"><span>Why this match</span><small>'+esc(i.matchReason)+'</small></div><button class="btn light" onclick="liveMatchDetail(\''+i.key+'\')">View '+(isTeacher?'teacher':'provider')+' →</button></div>'+
+  '</article>';
+};
+
+const talindInstitutionExploreBase=explore;
+explore=function(){
+  talindInstitutionExploreBase();
+  if(!(talindCurrentUser&&state.role==='institution'))return;
+  const main=document.querySelector('#main');
+  if(!main)return;
+  const introEl=main.querySelector('.intro');
+  if(introEl){
+    const h=introEl.querySelector('h1');
+    const p=introEl.querySelector('p');
+    if(h)h.textContent='Build your institution through the right people and partnerships.';
+    if(p)p.textContent='Discover teachers and training providers matched to your institution. Hiring, admissions and partnerships are managed through Institution Membership.';
+  }
+  if(!main.querySelector('.institution-purpose-grid')&&introEl)introEl.insertAdjacentHTML('afterend',institutionPurposeHTML());
+  main.querySelectorAll('.opportunity-section').forEach(function(section){
+    const h=section.querySelector('h2');
+    if(!h)return;
+    if(/Teacher & expert profiles/i.test(h.textContent))h.textContent='Teachers matched to your institution';
+    if(/Training partners/i.test(h.textContent))h.textContent='Training providers for your institution';
+  });
+};
+
+const talindInstitutionWorkspaceBase=workspace;
+workspace=function(){
+  talindInstitutionWorkspaceBase();
+  if(!(talindCurrentUser&&state.role==='institution'))return;
+  const main=document.querySelector('#main');
+  if(!main||main.querySelector('.institution-purpose-grid'))return;
+  const head=main.querySelector('.clean-workspace-head');
+  if(head)head.insertAdjacentHTML('afterend',institutionPurposeHTML());
+};
+
+const talindInstitutionActivityBase=activity;
+activity=function(){
+  talindInstitutionActivityBase();
+  if(!(talindCurrentUser&&state.role==='institution'))return;
+  const introEl=document.querySelector('#main .intro');
+  if(introEl){
+    const h=introEl.querySelector('h1');
+    const p=introEl.querySelector('p');
+    if(h)h.textContent='Your recruitment and partnership conversations.';
+    if(p)p.textContent='Track shortlisted teachers, training partners and ongoing institutional conversations from one place.';
+  }
+  const stats=document.querySelectorAll('#main .stats .stat span');
+  const labels=['Active relationships','Conversations','Confirmed'];
+  stats.forEach(function(el,i){if(labels[i])el.textContent=labels[i]});
+};
+
+const talindInstitutionProfileChromeBase=cleanPageChrome;
+cleanPageChrome=function(){
+  talindInstitutionProfileChromeBase();
+  if(!(talindCurrentUser&&state.role==='institution'&&location.hash==='#profile'))return;
+  const current=typeof steps==='function'?steps()[registration.step]:null;
+  if(current&&current.id==='purpose'){
+    const panel=document.querySelector('#main .onboarding-panel');
+    if(panel&&!panel.querySelector('.institution-purpose-help')){
+      const h=panel.querySelector('h2');
+      if(h)h.insertAdjacentHTML('afterend',
+        '<div class="institution-purpose-help"><strong>Select everything your institution wants Talind to support.</strong>'+
+        '<div class="institution-purpose-help-grid">'+
+          '<div><b>Hire teachers / professors</b><p>Create vacancies and discover relevant educators.</p></div>'+
+          '<div><b>Promote admissions</b><p>Show programmes, intake and admission information to students and parents.</p></div>'+
+          '<div><b>Training association / partnership</b><p>Find providers for workshops, development and institutional programmes.</p></div>'+
+        '</div><p class="institution-help-note">One Institution Membership is designed to cover these institutional growth activities.</p></div>'
+      );
+    }
+  }
+  if(current&&current.id==='openings'){
+    const panel=document.querySelector('#main .onboarding-panel');
+    if(panel&&!panel.querySelector('.institution-opening-help')){
+      const h=panel.querySelector('h2');
+      if(h)h.insertAdjacentHTML('afterend',
+        '<div class="institution-opening-help"><strong>Create vacancies that can be matched accurately.</strong><p>Add the subject/department, curriculum, qualification, experience, location, salary and required skills for each opening.</p></div>'
+      );
+    }
+  }
+};
