@@ -178,3 +178,142 @@ render=function(){
 };
 
 cleanPageChrome();
+
+
+// Talind Public Experience V4
+// Makes the public Explore page explain Talind immediately while preserving
+// signed-in matching, membership and relationship logic.
+
+function talindSelectExploreRole(role){
+  if(!Object.prototype.hasOwnProperty.call(roleNames,role))return;
+  state.role=role;
+  state.query='';
+  state.category='All';
+  state.mode='All modes';
+  const select=document.querySelector('#role');
+  if(select)select.value=role;
+  if(location.hash!=='#explore')location.hash='explore';
+  else explore();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function talindPublicHero(){
+  const roles=[
+    {
+      key:'learner',
+      label:'Students & Parents',
+      title:'Find the right support.',
+      text:'Discover tutors, coaching, skill programmes, schools and colleges based on what you actually need.',
+      meta:'Free access'
+    },
+    {
+      key:'teacher',
+      label:'Teachers & Experts',
+      title:'Turn skills into opportunity.',
+      text:'Find teaching jobs for free, build your professional profile and offer independent services when you choose.',
+      meta:'Job seeking is free'
+    },
+    {
+      key:'institution',
+      label:'Schools & Colleges',
+      title:'Find people who fit.',
+      text:'Discover skilled educators, publish hiring needs, strengthen admissions visibility and build partnerships.',
+      meta:'Hiring · admissions · partnerships'
+    },
+    {
+      key:'training',
+      label:'Training Providers',
+      title:'Grow your reach.',
+      text:'Connect programmes with learners and discover training opportunities from schools, colleges and institutions.',
+      meta:'Learners · institutions'
+    }
+  ];
+
+  return '<section class="talind-hero">'+
+    '<div class="talind-hero-copy">'+
+      '<span class="eyebrow">SKILLS · PEOPLE · OPPORTUNITIES</span>'+
+      '<h1>Skills open doors.<br>Talind helps you find what comes next.</h1>'+
+      '<p>One skills-first platform connecting students, parents, teachers, institutions and training providers through real needs and relevant opportunities.</p>'+
+      '<div class="talind-hero-actions">'+
+        '<button class="btn" onclick="authScreen(\'signup\')">Create my Talind account →</button>'+
+        '<button class="btn outline" onclick="authScreen(\'login\')">Log in</button>'+
+      '</div>'+
+      '<div class="talind-trust-row"><span>Students & parents: free</span><span>Teacher job seeking: free</span><span>Purpose-based matching</span></div>'+
+    '</div>'+
+    '<div class="talind-role-grid">'+
+      roles.map(function(r){
+        const active=state.role===r.key;
+        return '<button class="talind-role-card '+(active?'active':'')+'" onclick="talindSelectExploreRole(\''+r.key+'\')">'+
+          '<span class="talind-role-label">'+r.label+'</span>'+
+          '<strong>'+r.title+'</strong>'+
+          '<p>'+r.text+'</p>'+
+          '<small>'+r.meta+'</small>'+
+          '<span class="talind-role-arrow">'+(active?'Exploring now':'Explore')+' →</span>'+
+        '</button>';
+      }).join('')+
+    '</div>'+
+  '</section>'+
+  '<section class="talind-how">'+
+    '<div><span>01</span><strong>Tell Talind about you</strong><p>Build a profile around your skills, needs, location and goals.</p></div>'+
+    '<div><span>02</span><strong>See relevant possibilities</strong><p>Talind surfaces people and opportunities that fit your selected purpose.</p></div>'+
+    '<div><span>03</span><strong>Connect with control</strong><p>Shortlist, chat, agree and share contact details according to Talind access rules.</p></div>'+
+  '</section>';
+}
+
+const talindPublicExploreBase=explore;
+explore=function(){
+  talindPublicExploreBase();
+  if(talindCurrentUser)return;
+
+  const oldIntro=document.querySelector('#main > .intro');
+  if(oldIntro)oldIntro.remove();
+
+  const main=document.querySelector('#main');
+  if(main&&!main.querySelector('.talind-hero')){
+    main.insertAdjacentHTML('afterbegin',talindPublicHero());
+  }
+
+  const search=document.querySelector('#main .searchbar');
+  if(search&&!document.querySelector('#main .talind-explore-context')){
+    const copy={
+      learner:['Explore as Student / Parent','Search learning, teachers and institutions.'],
+      teacher:['Explore as Teacher / Expert','Search jobs and professional opportunities.'],
+      institution:['Explore as School / College','Discover teachers and expertise for your institution.'],
+      training:['Explore as Training Provider','Discover learner and institutional opportunities.']
+    }[state.role];
+    search.insertAdjacentHTML('beforebegin',
+      '<div class="talind-explore-context"><div><span class="tiny">YOUR CURRENT VIEW</span><h2>'+copy[0]+'</h2><p>'+copy[1]+'</p></div></div>'
+    );
+  }
+};
+
+const talindHumanWorkspaceBase=workspace;
+workspace=function(){
+  talindHumanWorkspaceBase();
+  if(!talindCurrentUser)return;
+
+  const labels={
+    learner:['Profile','Requirement visibility','Matches','Conversations','Confirmed'],
+    teacher:['Profile','Profile visibility','Opportunities','Conversations','Confirmed'],
+    institution:['Profile','Organisation visibility','Active searches','Conversations','Confirmed'],
+    training:['Profile','Provider visibility','Opportunities','Conversations','Confirmed']
+  }[state.role];
+
+  document.querySelectorAll('#main .clean-status-row span').forEach(function(el,i){
+    if(labels[i])el.textContent=labels[i];
+  });
+};
+
+const talindRoleContextBase=cleanRoleContext;
+cleanRoleContext=function(){
+  talindRoleContextBase();
+  const avatar=document.querySelector('.avatar-btn');
+  if(avatar)avatar.style.display=talindCurrentUser?'':'none';
+
+  const note=document.querySelector('.aside-note');
+  if(note&&!talindCurrentUser){
+    note.innerHTML='<span class="tiny">ONE CONNECTED COMMUNITY</span><h3>Skills create<br>possibility.</h3><p>Choose your role and explore the opportunities Talind can connect.</p><a href="#plans">Understand Talind access ↗</a>';
+  }
+};
+
+cleanRoleContext();
