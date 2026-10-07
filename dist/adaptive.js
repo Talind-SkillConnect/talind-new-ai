@@ -174,3 +174,147 @@ if(location.hash==='#profile'||location.hash==='#workspace')render();
 const evidenceByPurpose=evidenceHTML;evidenceHTML=function(){let html=evidenceByPurpose();if(state.role==='learner')return html;const names=[...new Set([...record().skills.map(s=>s.name),...record().openings.flatMap(o=>o.skills),...record().courses.flatMap(c=>c.skills)])];for(const id of ['evidence-skill','link-skill'])html=html.replace(new RegExp('(<select id="'+id+'">)[\\s\\S]*?(</select>)'),`$1<option value="">General profile</option>${names.map(s=>`<option>${esc(s)}</option>`).join('')}$2`);return html};
 const adaptiveBeforeLabels=adaptiveFields;adaptiveFields=function(id){return adaptiveBeforeLabels(id).map(f=>state.role==='teacher'&&f.key==='grades'&&!hasPurpose('Find a job')?{...f,label:'Learner age groups / audience you teach'}:f)};
 const workspaceBeforeEntries=workspace;workspace=function(){workspaceBeforeEntries();const r=record(),kind=state.role==='institution'?'openings':state.role==='training'?'courses':null;if(kind&&r[kind].length)$('#main').insertAdjacentHTML('beforeend',`<section class="panel"><h2>${kind==='openings'?'Your job postings':'Your courses'}</h2>${r[kind].map(x=>`<div class="row"><div><strong>${esc(x.title)}</strong><p>${x.skills.map(esc).join(', ')}</p></div><span class="badge">Saved draft</span></div>`).join('')}</section>`)};
+
+
+// Talind Training Provider Inputs V10
+// Gives Training Providers two independent business paths: individual learner
+// programmes and institutional partnerships.
+
+const trainingStepsBase=steps;
+steps=function(){
+  if(state.role!=='training')return trainingStepsBase();
+  return [
+    {id:'basics',title:'Account & authorised contact'},
+    {id:'purpose',title:'Your business purpose'},
+    {id:'background',title:'Provider expertise'},
+    {id:'skills',title:'Skills offered & expertise'},
+    ...(hasPurpose('Individual learner enrolment')?[{id:'courses',title:'Courses & programmes'}]:[]),
+    ...(hasPurpose('Institutional partnerships')?[{id:'providerPartnerships',title:'Institutional partnerships'}]:[]),
+    {id:'consent',title:'Contact & consent'},
+    {id:'review',title:'Review & complete'}
+  ];
+};
+
+const trainingAdaptiveBase=adaptiveFields;
+adaptiveFields=function(id){
+  if(state.role==='training'&&id==='providerPartnerships'){
+    return [
+      field('providerInstitutionTypes','Institutions you want to work with','text',[],true),
+      field('providerPartnershipTypes','Partnership / programme types offered','textarea',[],true),
+      field('providerInstitutionAudience','Target participants / departments','text',[],true),
+      field('providerCustomise','Can programmes be customised?','select',['Yes','No','Depends on requirement'],true),
+      field('providerDelivery','Institutional delivery mode','select',['Online','On campus','Hybrid','Flexible'],true),
+      field('providerTravel','Travel / on-site delivery availability','text',[],true),
+      field('providerGroupSize','Preferred participant / group size','text',[],true),
+      field('providerDuration','Typical institutional programme duration','text',[],true),
+      field('providerCommercialModel','Commercial model','select',['Per participant','Per session / workshop','Per programme','Monthly / annual retainer','Open to proposal'],true),
+      field('providerContractRange','Indicative institutional fee / contract range','text',[],true),
+      field('providerProposalTimeline','Proposal / mobilisation timeline','text',[],true),
+      field('providerPastWork','Past institutional clients / outcomes','textarea'),
+      field('providerPartnershipWebsite','Partnership / corporate training webpage','url'),
+      field('providerProposalLink','Programme catalogue / proposal link','url'),
+      field('providerPartnershipNotes','Other capabilities or conditions','textarea')
+    ];
+  }
+  if(state.role==='training'&&id==='preferences')return [];
+  return trainingAdaptiveBase(id);
+};
+
+const trainingPurposeBase=purposeHTML;
+purposeHTML=function(){
+  if(state.role!=='training')return trainingPurposeBase();
+  const defs=[
+    ['Individual learner enrolment','Individual learners','Publish multiple courses or coaching programmes for students, parents and individual learners.'],
+    ['Institutional partnerships','Institutional partnerships','Offer workshops, teacher development, student skill programmes, customised training and longer-term institutional contracts.']
+  ];
+  return '<p class="muted">Choose one or both business paths. Talind keeps learner programmes and institutional business opportunities separate.</p>'+
+    '<div class="training-purpose-selector">'+defs.map(function(d){
+      const on=hasPurpose(d[0]);
+      return '<div class="training-purpose-option '+(on?'selected':'')+'">'+
+        '<label class="check-row"><input type="checkbox" name="purposes" value="'+esc(d[0])+'" '+(on?'checked':'')+'><span><strong>'+esc(d[1])+'</strong><small>'+esc(d[2])+'</small></span></label>'+
+        (on?'<button type="button" class="btn light" onclick="saveFields();startTrainingPurpose(\''+d[0]+'\')">Configure '+esc(d[1])+' →</button>':'')+
+      '</div>';
+    }).join('')+'</div>'+
+    '<p class="bottom-note">Training Provider membership covers learner discovery and institutional partnership access.</p>';
+};
+
+let editingTrainingCourseIndex=-1;
+function trainingCourseCardsHTML(){
+  const list=record().courses||[];
+  return '<div class="provider-course-intro"><p class="muted">Add each course or programme separately. Fees, batch size, trainer, mode, schedule, outcomes and certification can be different for every programme.</p>'+
+    '<div class="notice"><strong>Example:</strong> Phonics for ages 5–8, CBSE Mathematics tuition, and Teacher AI Workshop should be three separate programmes.</div></div>'+
+    '<div class="provider-course-list">'+list.map(function(e,i){
+      return '<article class="provider-course-card"><div class="provider-course-head"><div><span class="eyebrow">PROGRAMME '+(i+1)+'</span><h3>'+esc(e.title)+'</h3><p>'+esc(e.category)+' · '+esc(e.audience)+' · '+esc(e.mode)+'</p></div><span class="badge">'+esc(e.fee)+'</span></div>'+
+        '<div class="provider-course-meta"><span>'+esc(e.duration)+'</span><span>'+esc(e.schedule)+'</span><span>Batch '+esc(e.batch)+'</span><span>'+esc(e.start)+'</span></div>'+
+        '<div class="tags">'+(e.skills||[]).map(function(s){return '<span>'+esc(s)+'</span>'}).join('')+'</div>'+
+        '<div class="workspace-links"><button type="button" class="btn light" onclick="editTrainingCourse('+i+')">Edit</button><button type="button" class="btn outline" onclick="duplicateTrainingCourse('+i+')">Duplicate</button><button type="button" class="text-button" onclick="removeTrainingCourse('+i+')">Remove</button></div></article>';
+    }).join('')+'</div>'+
+    '<details class="entry-builder provider-course-builder" '+(list.length&&editingTrainingCourseIndex<0?'':'open')+'><summary>+ '+(editingTrainingCourseIndex>=0?'Edit programme':'Add another course / programme')+'</summary>'+
+      '<div class="fields">'+courseFields.map(function(q){const src=editingTrainingCourseIndex>=0?(list[editingTrainingCourseIndex]||{}):{};return builderField(q,src[q.key]||'')}).join('')+'</div>'+
+      '<h3>Skills taught in this programme</h3><div class="skill-builder"><label>Choose a skill<select id="entry-skill-pick"><option value="">Choose a skill</option>'+catalog.map(function(s){return '<option>'+esc(s)+'</option>'}).join('')+'</select></label><label>Or enter a custom skill<input id="entry-skill-custom" maxlength="100"></label></div>'+
+      '<button type="button" class="btn light" onclick="addEntrySkill()">+ Add skill</button><div class="tags" id="entry-skills" aria-live="polite"></div><p class="form-error" id="entry-error" role="alert"></p>'+
+      '<div class="entry-save-actions"><button type="button" class="btn" onclick="saveTrainingCourse(true)">'+(editingTrainingCourseIndex>=0?'Update & add another programme':'Save & add another programme')+'</button><button type="button" class="btn outline" onclick="saveTrainingCourse(false)">'+(editingTrainingCourseIndex>=0?'Update programme':'Save programme')+'</button></div>'+
+    '</details>';
+}
+
+async function saveTrainingCourse(addAnother){
+  const obj={};
+  for(const q of courseFields){
+    const el=$('#entry-'+q.key),v=el?el.value.trim():'';
+    if(q.required&&!v){$('#entry-error').textContent='Please complete: '+q.label;el&&el.focus();return}
+    if(el&&!el.reportValidity()){$('#entry-error').textContent='Please check: '+q.label;el.focus();return}
+    obj[q.key]=v;
+  }
+  if(!editorSkills.length){$('#entry-error').textContent='Add at least one skill taught in this programme.';return}
+  obj.skills=[...editorSkills];
+  if(editingTrainingCourseIndex>=0){record().courses[editingTrainingCourseIndex]=obj;editingTrainingCourseIndex=-1}
+  else record().courses.push(obj);
+  record().complete=false;editorSkills=[];
+  if(talindCurrentUser&&typeof cloudSaveCurrentRole==='function')await cloudSaveCurrentRole();
+  profile();toast('Programme saved.');
+  if(addAnother)setTimeout(function(){const d=document.querySelector('.provider-course-builder');if(d){d.open=true;d.scrollIntoView({behavior:'smooth',block:'start'})}},40);
+}
+function editTrainingCourse(i){const src=record().courses[i];if(!src)return;editingTrainingCourseIndex=i;editorSkills=[...(src.skills||[])];profile();setTimeout(function(){const d=document.querySelector('.provider-course-builder');if(d){d.open=true;refreshEntrySkills();d.scrollIntoView({behavior:'smooth',block:'start'})}},30)}
+async function duplicateTrainingCourse(i){const src=record().courses[i];if(!src)return;record().courses.splice(i+1,0,{...src,title:(src.title||'Programme')+' - Copy',skills:[...(src.skills||[])]});record().complete=false;if(talindCurrentUser&&typeof cloudSaveCurrentRole==='function')await cloudSaveCurrentRole();profile();toast('Programme duplicated.')}
+async function removeTrainingCourse(i){record().courses.splice(i,1);record().complete=false;if(talindCurrentUser&&typeof cloudSaveCurrentRole==='function')await cloudSaveCurrentRole();profile()}
+
+const trainingEntriesBase=entriesHTML;
+entriesHTML=function(kind){
+  if(state.role==='training'&&kind==='courses')return trainingCourseCardsHTML();
+  return trainingEntriesBase(kind);
+};
+
+async function startTrainingPurpose(p){
+  state.role='training';const select=$('#role');if(select)select.value='training';
+  if(!hasPurpose(p))record().fields.purposes=[...selectedPurposes(),p];
+  if(talindCurrentUser&&typeof cloudSaveCurrentRole==='function')await cloudSaveCurrentRole();
+  const target=p==='Individual learner enrolment'?'courses':'providerPartnerships';
+  registration.step=steps().findIndex(function(s){return s.id===target});
+  navigate('profile');
+}
+function trainingProfilePurposeNav(){
+  const selected=selectedPurposes();
+  const items=[
+    ['Individual learner enrolment','Learner programmes','courses'],
+    ['Institutional partnerships','Institutional partnerships','providerPartnerships']
+  ];
+  return '<div class="training-profile-purpose-nav">'+items.map(function(x){
+    const current=steps()[registration.step],active=current&&current.id===x[2],on=selected.includes(x[0]);
+    return '<button type="button" class="'+(active?'active':'')+'" onclick="startTrainingPurpose(\''+x[0]+'\')"><strong>'+x[1]+'</strong><small>'+(on?'Selected / configured':'Add purpose')+'</small></button>';
+  }).join('')+'</div>';
+}
+
+const trainingProfileBase=profile;
+profile=function(){
+  trainingProfileBase();
+  if(state.role!=='training')return;
+  const current=steps()[registration.step];
+  if(current&&current.id==='purpose'){
+    document.querySelectorAll('#registration-form input[name="purposes"]').forEach(function(el){
+      el.onchange=async function(){saveFields();if(talindCurrentUser&&typeof cloudSaveCurrentRole==='function')await cloudSaveCurrentRole();profile()}
+    });
+  }
+  const layout=document.querySelector('#main .onboard-layout');
+  if(layout&&!document.querySelector('.training-profile-purpose-nav'))layout.insertAdjacentHTML('beforebegin',trainingProfilePurposeNav());
+  if(current&&current.id==='courses'&&editingTrainingCourseIndex>=0)setTimeout(function(){refreshEntrySkills()},0);
+};
