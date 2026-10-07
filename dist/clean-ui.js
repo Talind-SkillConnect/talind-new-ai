@@ -178,3 +178,888 @@ render=function(){
 };
 
 cleanPageChrome();
+
+
+// Talind Public Experience V4
+// Makes the public Explore page explain Talind immediately while preserving
+// signed-in matching, membership and relationship logic.
+
+function talindSelectExploreRole(role){
+  if(!Object.prototype.hasOwnProperty.call(roleNames,role))return;
+  state.role=role;
+  state.query='';
+  state.category='All';
+  state.mode='All modes';
+  const select=document.querySelector('#role');
+  if(select)select.value=role;
+  if(location.hash!=='#explore')location.hash='explore';
+  else explore();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function talindPublicHero(){
+  const roles=[
+    {
+      key:'learner',
+      label:'Students & Parents',
+      title:'Find the right support.',
+      text:'Discover tutors, coaching, skill programmes, schools and colleges based on what you actually need.',
+      meta:'Free access'
+    },
+    {
+      key:'teacher',
+      label:'Teachers & Experts',
+      title:'Turn skills into opportunity.',
+      text:'Find teaching jobs for free, build your professional profile and offer independent services when you choose.',
+      meta:'Job seeking is free'
+    },
+    {
+      key:'institution',
+      label:'Schools & Colleges',
+      title:'Find people who fit.',
+      text:'Discover skilled educators, publish hiring needs, strengthen admissions visibility and build partnerships.',
+      meta:'Hiring · admissions · partnerships'
+    },
+    {
+      key:'training',
+      label:'Training Providers',
+      title:'Grow your reach.',
+      text:'Connect programmes with learners and discover training opportunities from schools, colleges and institutions.',
+      meta:'Learners · institutions'
+    }
+  ];
+
+  return '<section class="talind-hero">'+
+    '<div class="talind-hero-copy">'+
+      '<span class="eyebrow">SKILLS · PEOPLE · OPPORTUNITIES</span>'+
+      '<h1>Skills open doors.<br>Talind helps you find what comes next.</h1>'+
+      '<p>One skills-first platform connecting students, parents, teachers, institutions and training providers through real needs and relevant opportunities.</p>'+
+      '<div class="talind-hero-actions">'+
+        '<button class="btn" onclick="authScreen(\'signup\')">Create my Talind account →</button>'+
+        '<button class="btn outline" onclick="authScreen(\'login\')">Log in</button>'+
+      '</div>'+
+      '<div class="talind-trust-row"><span>Students & parents: free</span><span>Teacher job seeking: free</span><span>Purpose-based matching</span></div>'+
+    '</div>'+
+    '<div class="talind-role-grid">'+
+      roles.map(function(r){
+        const active=state.role===r.key;
+        return '<button class="talind-role-card '+(active?'active':'')+'" onclick="talindSelectExploreRole(\''+r.key+'\')">'+
+          '<span class="talind-role-label">'+r.label+'</span>'+
+          '<strong>'+r.title+'</strong>'+
+          '<p>'+r.text+'</p>'+
+          '<small>'+r.meta+'</small>'+
+          '<span class="talind-role-arrow">'+(active?'Exploring now':'Explore')+' →</span>'+
+        '</button>';
+      }).join('')+
+    '</div>'+
+  '</section>'+
+  '<section class="talind-how">'+
+    '<div><span>01</span><strong>Tell Talind about you</strong><p>Build a profile around your skills, needs, location and goals.</p></div>'+
+    '<div><span>02</span><strong>See relevant possibilities</strong><p>Talind surfaces people and opportunities that fit your selected purpose.</p></div>'+
+    '<div><span>03</span><strong>Connect with control</strong><p>Shortlist, chat, agree and share contact details according to Talind access rules.</p></div>'+
+  '</section>';
+}
+
+const talindPublicExploreBase=explore;
+explore=function(){
+  talindPublicExploreBase();
+  if(talindCurrentUser)return;
+
+  const oldIntro=document.querySelector('#main > .intro');
+  if(oldIntro)oldIntro.remove();
+
+  const main=document.querySelector('#main');
+  if(main&&!main.querySelector('.talind-hero')){
+    main.insertAdjacentHTML('afterbegin',talindPublicHero());
+  }
+
+  const search=document.querySelector('#main .searchbar');
+  if(search&&!document.querySelector('#main .talind-explore-context')){
+    const copy={
+      learner:['Explore as Student / Parent','Search learning, teachers and institutions.'],
+      teacher:['Explore as Teacher / Expert','Search jobs and professional opportunities.'],
+      institution:['Explore as School / College','Discover teachers and expertise for your institution.'],
+      training:['Explore as Training Provider','Discover learner and institutional opportunities.']
+    }[state.role];
+    search.insertAdjacentHTML('beforebegin',
+      '<div class="talind-explore-context"><div><span class="tiny">YOUR CURRENT VIEW</span><h2>'+copy[0]+'</h2><p>'+copy[1]+'</p></div></div>'
+    );
+  }
+};
+
+const talindHumanWorkspaceBase=workspace;
+workspace=function(){
+  talindHumanWorkspaceBase();
+  if(!talindCurrentUser)return;
+
+  const labels={
+    learner:['Profile','Requirement visibility','Matches','Conversations','Confirmed'],
+    teacher:['Profile','Profile visibility','Opportunities','Conversations','Confirmed'],
+    institution:['Profile','Organisation visibility','Active searches','Conversations','Confirmed'],
+    training:['Profile','Provider visibility','Opportunities','Conversations','Confirmed']
+  }[state.role];
+
+  document.querySelectorAll('#main .clean-status-row span').forEach(function(el,i){
+    if(labels[i])el.textContent=labels[i];
+  });
+};
+
+const talindRoleContextBase=cleanRoleContext;
+cleanRoleContext=function(){
+  talindRoleContextBase();
+  const avatar=document.querySelector('.avatar-btn');
+  if(avatar)avatar.style.display=talindCurrentUser?'':'none';
+
+  const note=document.querySelector('.aside-note');
+  if(note&&!talindCurrentUser){
+    note.innerHTML='<span class="tiny">ONE CONNECTED COMMUNITY</span><h3>Skills create<br>possibility.</h3><p>Choose your role and explore the opportunities Talind can connect.</p><a href="#plans">Understand Talind access ↗</a>';
+  }
+};
+
+cleanRoleContext();
+
+
+// Talind Learner Journey V5
+// Makes the Student / Parent journey read like a guided service flow rather than
+// a relationship-state machine. Existing database and access rules remain unchanged.
+
+function learnerNeedSummary(){
+  const f=record().fields||{};
+  const needs=[f.needs,f.secondNeed].filter(function(x){return x&&x!=='No second requirement'});
+  return needs.length?needs:['Tell us what support you need'];
+}
+
+function learnerJourneyData(){
+  const conns=typeof v2RoleConnections==='function'?v2RoleConnections():[];
+  const teachers=typeof liveTeacherItems==='function'?liveTeacherItems():[];
+  const active=conns.filter(function(c){return c.status!=='closed'});
+  const conversations=active.filter(function(c){return !!c.last_message_at||['interest_expressed','quote_submitted','accepted'].includes(c.status)});
+  const quotes=active.filter(function(c){return c.status==='quote_submitted'});
+  const accepted=active.filter(function(c){return c.status==='accepted'});
+  const contactReady=accepted.filter(function(c){return !!engagementOwnAgreement(c.id,'guardian_contact_consent')});
+  return {teachers:teachers,active:active,conversations:conversations,quotes:quotes,accepted:accepted,contactReady:contactReady};
+}
+
+function learnerJourneyHTML(compact){
+  const r=record(),d=learnerJourneyData();
+  const steps=[
+    {title:'Tell us your need',done:!!r.complete,detail:r.complete?'Requirement ready':'Complete your Student / Parent profile'},
+    {title:'Compare matches',done:d.teachers.length>0,detail:d.teachers.length?d.teachers.length+' teacher match'+(d.teachers.length===1?'':'es'):'Matches appear when relevant teachers publish'},
+    {title:'Start a conversation',done:d.conversations.length>0,detail:d.conversations.length?d.conversations.length+' conversation'+(d.conversations.length===1?'':'s'):'Message a teacher from a match'},
+    {title:'Review a quote',done:d.quotes.length>0||d.accepted.length>0,detail:d.quotes.length?d.quotes.length+' quote awaiting review':d.accepted.length?'Quote accepted':'A teacher can quote after you connect'},
+    {title:'Confirm & connect',done:d.contactReady.length>0,detail:d.contactReady.length?'Direct contact approved':'Accept a quote and approve direct contact'}
+  ];
+  return '<section class="learner-journey '+(compact?'compact':'')+'">'+
+    '<div class="learner-journey-head"><div><span class="eyebrow">YOUR TALIND JOURNEY</span><h2>From requirement to the right support.</h2></div>'+
+      (!r.complete?'<button class="btn" onclick="registration.step=steps().findIndex(function(s){return s.id===\'preferences\'});navigate(\'profile\')">Complete my requirement</button>':'<button class="btn outline" onclick="navigate(\'explore\')">See my matches</button>')+
+    '</div>'+
+    '<div class="learner-journey-steps">'+steps.map(function(s,i){
+      return '<div class="learner-step '+(s.done?'done':'')+'"><span class="learner-step-no">'+(s.done?'✓':i+1)+'</span><div><strong>'+s.title+'</strong><small>'+s.detail+'</small></div></div>';
+    }).join('')+'</div>'+
+  '</section>';
+}
+
+function learnerNeedsCard(){
+  const f=record().fields||{},needs=learnerNeedSummary();
+  return '<section class="learner-needs-card">'+
+    '<div><span class="tiny">WHAT TALIND IS MATCHING FOR YOU</span><div class="learner-need-tags">'+needs.map(function(x){return '<span>'+esc(x)+'</span>'}).join('')+'</div></div>'+
+    '<button class="text-button" onclick="registration.step=steps().findIndex(function(s){return s.id===\'preferences\'});navigate(\'profile\')">Edit requirement</button>'+
+  '</section>';
+}
+
+function learnerMatchActions(item){
+  const c=matchConnection(item),parts=[];
+  const status=!c?'Ready to connect':c.status==='shortlisted'?'Saved for later':c.status==='interest_expressed'?'Conversation started':c.status==='quote_submitted'?'Quote received':c.status==='accepted'?'Quote accepted':matchStatusLabel(c);
+
+  if(!c){
+    parts.push('<button class="btn outline" onclick="matchSetStatus(\''+item.key+'\',\'shortlisted\')">Save teacher</button>');
+    parts.push('<button class="btn" onclick="matchOpenChat(\''+item.key+'\')">Message teacher</button>');
+  }else if(c.status!=='closed'){
+    parts.push('<button class="btn light" onclick="matchOpenChat(\''+item.key+'\')">'+(c.last_message_at?'Open conversation':'Message teacher')+'</button>');
+  }
+
+  if(c&&c.status==='quote_submitted'){
+    parts.push('<button class="btn" onclick="matchAcceptQuote(\''+item.key+'\')">Accept quote</button>');
+  }
+
+  if(c&&c.status==='accepted'){
+    const consent=engagementOwnAgreement(c.id,'guardian_contact_consent');
+    if(!consent){
+      parts.push('<button class="btn" onclick="acceptEngagementAgreement(\''+item.key+'\',\'guardian_contact_consent\')">Approve direct contact</button>');
+    }else{
+      parts.push('<button class="btn outline" onclick="matchViewContact(\''+item.key+'\')">View teacher contact</button>');
+    }
+  }
+
+  return '<div class="learner-match-state"><span class="badge">'+esc(status)+'</span>'+
+    (c&&c.status==='quote_submitted'?'<span class="learner-attention">Action needed: review this quote</span>':'')+
+    '</div><div class="dialog-actions learner-match-actions">'+parts.join('')+'</div>';
+}
+
+const talindLearnerMatchActionsBase=matchActions;
+matchActions=function(item){
+  if(state.role==='learner'&&item&&item.kind==='teacher')return learnerMatchActions(item);
+  return talindLearnerMatchActionsBase(item);
+};
+
+const talindLearnerCardBase=liveMatchCard;
+liveMatchCard=function(i){
+  if(!(state.role==='learner'&&i&&i.kind==='teacher'))return talindLearnerCardBase(i);
+  const c=matchConnection(i);
+  const status=!c?'New match':c.status==='shortlisted'?'Saved':c.status==='interest_expressed'?'Conversation started':c.status==='quote_submitted'?'Quote received':c.status==='accepted'?'Confirmed':matchStatusLabel(c);
+  const quote=c&&c.quote_amount!=null
+    ?'<div class="learner-card-quote"><span>Quote received</span><strong>'+(c.quote_currency||'INR')+' '+Number(c.quote_amount).toLocaleString('en-IN')+'</strong></div>'
+    :'';
+  return '<article class="card learner-match-card">'+
+    '<div class="card-top"><span class="badge">'+esc(status)+'</span><span class="match-fit">'+esc(i.matchReason)+'</span></div>'+
+    '<div class="card-body">'+
+      '<div class="identity"><div class="initials">'+esc(i.initials)+'</div><div><h3>'+esc(i.name)+'</h3><small>'+esc(i.subtitle)+'</small></div></div>'+
+      '<h3>'+esc(i.title)+'</h3>'+
+      '<p class="desc">'+esc(i.desc||'')+'</p>'+
+      '<div class="tags">'+(i.tags||[]).slice(0,5).map(function(t){return '<span>'+esc(t)+'</span>'}).join('')+'</div>'+
+      '<div class="meta"><span>'+esc(i.location)+'</span><span>'+esc(i.mode)+'</span></div>'+
+      quote+
+    '</div>'+
+    '<div class="card-foot"><div class="price"><span>Why this match</span><small>'+esc(i.matchReason)+'</small></div><button class="btn light" onclick="liveMatchDetail(\''+i.key+'\')">View teacher →</button></div>'+
+  '</article>';
+};
+
+const talindLearnerExploreBase=explore;
+explore=function(){
+  talindLearnerExploreBase();
+  if(!(talindCurrentUser&&state.role==='learner'))return;
+  const main=document.querySelector('#main');
+  if(!main)return;
+
+  const introEl=main.querySelector('.intro');
+  if(introEl){
+    const h=introEl.querySelector('h1');
+    const p=introEl.querySelector('p');
+    if(h)h.textContent='People and programmes matched to what you need.';
+    if(p)p.textContent='Compare your matches, start a Talind conversation, review quotes and share direct contact only when you are ready.';
+  }
+
+  if(!main.querySelector('.learner-needs-card')){
+    const anchor=main.querySelector('.intro');
+    if(anchor)anchor.insertAdjacentHTML('afterend',learnerNeedsCard()+learnerJourneyHTML(true));
+  }
+
+  main.querySelectorAll('.opportunity-section').forEach(function(section){
+    const h=section.querySelector('h2');
+    if(!h)return;
+    if(/Teacher & expert matches/i.test(h.textContent))h.textContent='Teachers matched to your requirement';
+    if(/Training & coaching providers/i.test(h.textContent))h.textContent='Courses & coaching you may want to explore';
+    if(/Schools & colleges/i.test(h.textContent))h.textContent='Schools & colleges matching your admission need';
+  });
+};
+
+const talindLearnerWorkspaceBase=workspace;
+workspace=function(){
+  talindLearnerWorkspaceBase();
+  if(!(talindCurrentUser&&state.role==='learner'))return;
+  const main=document.querySelector('#main');
+  if(!main||main.querySelector('.learner-journey'))return;
+  const head=main.querySelector('.clean-workspace-head');
+  if(head)head.insertAdjacentHTML('afterend',learnerJourneyHTML(false));
+};
+
+const talindLearnerActivityBase=activity;
+activity=function(){
+  talindLearnerActivityBase();
+  if(!(talindCurrentUser&&state.role==='learner'))return;
+  const introEl=document.querySelector('#main .intro');
+  if(introEl){
+    const h=introEl.querySelector('h1');
+    const p=introEl.querySelector('p');
+    if(h)h.textContent='Your conversations, quotes and confirmations.';
+    if(p)p.textContent='Continue from where you left off with each teacher or provider.';
+  }
+  const stats=document.querySelectorAll('#main .stats .stat span');
+  const labels=['Current conversations','Conversations started','Confirmed matches'];
+  stats.forEach(function(el,i){if(labels[i])el.textContent=labels[i]});
+};
+
+const talindLearnerProfileChromeBase=cleanPageChrome;
+cleanPageChrome=function(){
+  talindLearnerProfileChromeBase();
+  if(!(talindCurrentUser&&state.role==='learner'&&location.hash==='#profile'))return;
+  const current=typeof steps==='function'?steps()[registration.step]:null;
+  if(current&&current.id==='preferences'){
+    const panel=document.querySelector('#main .onboarding-panel');
+    if(panel&&!panel.querySelector('.learner-requirement-help')){
+      const h=panel.querySelector('h2');
+      if(h)h.insertAdjacentHTML('afterend',
+        '<div class="learner-requirement-help"><strong>Tell Talind what you actually need.</strong><p>These details directly influence your teacher, coaching and admission matches. You can add a second requirement too—for example, tuition plus school admission.</p></div>'
+      );
+    }
+  }
+};
+
+
+// Talind Teacher Journey V6
+// Clarifies the two Teacher / Expert tracks: free employment discovery and
+// paid independent services, while preserving existing contact and membership rules.
+
+function teacherJourneyData(){
+  const r=record();
+  const purposes=typeof selectedPurposes==='function'?selectedPurposes():[];
+  const conns=typeof v2RoleConnections==='function'?v2RoleConnections():[];
+  const hiring=typeof liveInstitutionItems==='function'?liveInstitutionItems():[];
+  const learners=typeof liveRequirementItems==='function'?liveRequirementItems():[];
+  const jobConns=conns.filter(function(c){return c.context_type==='institution_profile'&&c.status!=='closed'});
+  const learnerConns=conns.filter(function(c){return c.context_type==='learner_requirement'&&c.status!=='closed'});
+  const inboundLearners=learnerConns.filter(function(c){return matchState.inboundConnectionIds&&matchState.inboundConnectionIds.has(c.id)});
+  const quotes=learnerConns.filter(function(c){return c.status==='quote_submitted'});
+  const accepted=learnerConns.filter(function(c){return c.status==='accepted'});
+  const serviceActive=typeof matchMembershipActive==='function'&&matchMembershipActive('teacher-services');
+  return {
+    complete:!!r.complete,
+    purposes:purposes,
+    hiring:hiring,
+    learners:learners,
+    jobConns:jobConns,
+    learnerConns:learnerConns,
+    inboundLearners:inboundLearners,
+    quotes:quotes,
+    accepted:accepted,
+    serviceActive:serviceActive
+  };
+}
+
+function teacherTrackHTML(){
+  const d=teacherJourneyData();
+  const wantsJobs=d.purposes.includes('Find a job');
+  const wantsServices=d.purposes.includes('Offer tuition / coaching / training');
+  return '<section class="teacher-tracks">'+
+    '<div class="teacher-track free">'+
+      '<div class="teacher-track-head"><span class="teacher-track-icon">01</span><div><span class="eyebrow">EMPLOYMENT</span><h2>Find teaching & faculty jobs</h2></div><span class="teacher-plan-pill">FREE</span></div>'+
+      '<p>Build your professional profile, discover hiring institutions and communicate about employment without a Teacher Services membership.</p>'+
+      '<div class="teacher-track-progress">'+
+        '<span class="'+(d.complete?'done':'')+'">Profile '+(d.complete?'✓':'')+'</span>'+
+        '<span class="'+(d.hiring.length?'done':'')+'">Hiring matches '+(d.hiring.length?'✓':'')+'</span>'+
+        '<span class="'+(d.jobConns.length?'done':'')+'">Applications / conversations '+(d.jobConns.length?'✓':'')+'</span>'+
+      '</div>'+
+      '<div class="workspace-links">'+
+        (!wantsJobs?'<button class="btn outline" onclick="registration.step=steps().findIndex(function(s){return s.id===\'purpose\'});navigate(\'profile\')">Add job seeking</button>':'<button class="btn" onclick="navigate(\'explore\')">Explore hiring institutions</button>')+
+      '</div>'+
+    '</div>'+
+    '<div class="teacher-track service">'+
+      '<div class="teacher-track-head"><span class="teacher-track-icon">02</span><div><span class="eyebrow">INDEPENDENT SERVICES</span><h2>Offer tuition, coaching & expertise</h2></div><span class="teacher-plan-pill '+(d.serviceActive?'active':'')+'">'+(d.serviceActive?'ACTIVE':'MEMBERSHIP')+'</span></div>'+
+      '<p>Learners can contact you first. To proactively contact learner requirements, submit quotes or provide paid services, activate Teacher Services.</p>'+
+      '<div class="teacher-track-progress">'+
+        '<span class="'+(wantsServices?'done':'')+'">Service profile '+(wantsServices?'✓':'')+'</span>'+
+        '<span class="'+(d.serviceActive?'done':'')+'">Membership '+(d.serviceActive?'✓':'')+'</span>'+
+        '<span class="'+(d.learnerConns.length?'done':'')+'">Learner conversations '+(d.learnerConns.length?'✓':'')+'</span>'+
+        '<span class="'+(d.accepted.length?'done':'')+'">Confirmed services '+(d.accepted.length?'✓':'')+'</span>'+
+      '</div>'+
+      '<div class="workspace-links">'+
+        (!wantsServices?'<button class="btn outline" onclick="registration.step=steps().findIndex(function(s){return s.id===\'purpose\'});navigate(\'profile\')">Add teaching services</button>':!d.serviceActive?'<button class="btn" onclick="billing.audience=\'teacher\';navigate(\'plans\')">View Teacher Services</button>':'<button class="btn" onclick="navigate(\'explore\')">Find learner opportunities</button>')+
+      '</div>'+
+    '</div>'+
+  '</section>'+
+  (d.inboundLearners.length&&!d.serviceActive
+    ?'<div class="notice teacher-inbound"><strong>'+d.inboundLearners.length+' learner conversation'+(d.inboundLearners.length===1?' is':'s are')+' waiting for you.</strong> You may reply inside Talind because the learner contacted you first. Membership is still required to initiate new learner conversations or submit service quotes.</div>'
+    :'');
+}
+
+function teacherJobActions(item){
+  const c=matchConnection(item),parts=[];
+  const status=!c?'Hiring opportunity':c.status==='shortlisted'?'Saved institution':c.status==='interest_expressed'?'Application conversation started':c.status==='accepted'?'Confirmed':matchStatusLabel(c);
+  if(!c){
+    parts.push('<button class="btn outline" onclick="matchSetStatus(\''+item.key+'\',\'shortlisted\')">Save institution</button>');
+    parts.push('<button class="btn" onclick="matchOpenChat(\''+item.key+'\')">Contact about jobs</button>');
+  }else if(c.status!=='closed'){
+    parts.push('<button class="btn" onclick="matchOpenChat(\''+item.key+'\')">'+(c.last_message_at?'Open conversation':'Contact institution')+'</button>');
+    parts.push('<button class="btn outline" onclick="matchViewContact(\''+item.key+'\')">View contact</button>');
+  }
+  return '<div class="teacher-match-state"><span class="badge">'+esc(status)+'</span><span class="teacher-free-note">Job seeking on Talind is free</span></div>'+
+    '<div class="dialog-actions teacher-match-actions">'+parts.join('')+'</div>';
+}
+
+function teacherLearnerActions(item){
+  const c=matchConnection(item),locked=teacherServiceLocked(item),canReply=teacherCanReplyToStudent(item),parts=[];
+  let status=!c?'Learner opportunity':c.status==='shortlisted'?'Saved opportunity':c.status==='interest_expressed'?'Conversation started':c.status==='quote_submitted'?'Quote sent':c.status==='accepted'?'Service confirmed':matchStatusLabel(c);
+
+  if(locked){
+    if(canReply){
+      status='Learner contacted you';
+      parts.push('<button class="btn" onclick="matchOpenChat(\''+item.key+'\')">Reply to learner</button>');
+    }
+    parts.push('<button class="btn outline" onclick="openTeacherServicesMembership()">Activate Teacher Services</button>');
+  }else{
+    if(!c){
+      parts.push('<button class="btn outline" onclick="matchSetStatus(\''+item.key+'\',\'shortlisted\')">Save opportunity</button>');
+      parts.push('<button class="btn" onclick="matchOpenChat(\''+item.key+'\')">Contact learner</button>');
+    }else if(c.status!=='closed'){
+      parts.push('<button class="btn light" onclick="matchOpenChat(\''+item.key+'\')">'+(c.last_message_at?'Open conversation':'Message learner')+'</button>');
+    }
+    if(!c||c.status!=='accepted'){
+      parts.push('<button class="btn outline" onclick="matchSubmitQuote(\''+item.key+'\')">Send quote</button>');
+    }
+  }
+
+  if(c&&c.status==='accepted'){
+    const agreement=engagementOwnAgreement(c.id,'provider_professional');
+    if(!agreement){
+      parts.push('<button class="btn" onclick="acceptEngagementAgreement(\''+item.key+'\',\'provider_professional\')">Accept professional agreement</button>');
+    }else if(matchMembershipActive('teacher-services')){
+      parts.push('<button class="btn outline" onclick="matchViewContact(\''+item.key+'\')">View learner contact</button>');
+    }
+  }
+
+  return '<div class="teacher-match-state"><span class="badge">'+esc(status)+'</span>'+
+    (locked?'<span class="teacher-lock-note">'+(canReply?'Reply allowed · new outreach locked':'Membership required for new outreach')+'</span>':'<span class="teacher-free-note">Teacher Services active</span>')+
+    '</div><div class="dialog-actions teacher-match-actions">'+parts.join('')+'</div>';
+}
+
+const talindTeacherMatchActionsBase=matchActions;
+matchActions=function(item){
+  if(state.role==='teacher'&&item){
+    if(item.kind==='institution')return teacherJobActions(item);
+    if(item.kind==='requirement')return teacherLearnerActions(item);
+  }
+  return talindTeacherMatchActionsBase(item);
+};
+
+const talindTeacherCardBase=liveMatchCard;
+liveMatchCard=function(i){
+  if(!(state.role==='teacher'&&i))return talindTeacherCardBase(i);
+  const c=matchConnection(i);
+  const isLearner=i.kind==='requirement';
+  const locked=isLearner&&teacherServiceLocked(i);
+  const canReply=isLearner&&teacherCanReplyToStudent(i);
+  const status=!c
+    ?(isLearner?'New learner opportunity':'Hiring institution')
+    :c.status==='shortlisted'?'Saved'
+    :c.status==='interest_expressed'?'Conversation started'
+    :c.status==='quote_submitted'?'Quote sent'
+    :c.status==='accepted'?'Confirmed'
+    :matchStatusLabel(c);
+  const access=isLearner
+    ?(locked?(canReply?'Learner contacted you · reply allowed':'Teacher Services required to initiate contact'):'Teacher Services active')
+    :'Job seeking is free';
+
+  return '<article class="card teacher-match-card '+(locked?'locked':'')+'">'+
+    '<div class="card-top"><span class="badge">'+esc(status)+'</span><span class="'+(locked?'teacher-access locked':'teacher-access')+'">'+esc(access)+'</span></div>'+
+    '<div class="card-body">'+
+      '<div class="identity"><div class="initials">'+esc(i.initials)+'</div><div><h3>'+esc(i.name)+'</h3><small>'+esc(i.subtitle)+'</small></div></div>'+
+      '<h3>'+esc(i.title)+'</h3><p class="desc">'+esc(i.desc||'')+'</p>'+
+      '<div class="tags">'+(i.tags||[]).slice(0,6).map(function(t){return '<span>'+esc(t)+'</span>'}).join('')+'</div>'+
+      '<div class="meta"><span>'+esc(i.location)+'</span><span>'+esc(i.mode)+'</span></div>'+
+    '</div>'+
+    '<div class="card-foot"><div class="price"><span>Why this match</span><small>'+esc(i.matchReason)+'</small></div><button class="btn light" onclick="liveMatchDetail(\''+i.key+'\')">View opportunity →</button></div>'+
+  '</article>';
+};
+
+const talindTeacherExploreBase=explore;
+explore=function(){
+  talindTeacherExploreBase();
+  if(!(talindCurrentUser&&state.role==='teacher'))return;
+  const main=document.querySelector('#main');
+  if(!main)return;
+  const introEl=main.querySelector('.intro');
+  if(introEl){
+    const h=introEl.querySelector('h1');
+    const p=introEl.querySelector('p');
+    if(h)h.textContent='Turn your skills into the right opportunities.';
+    if(p)p.textContent='Job seeking stays free. Independent teaching services use Teacher Services membership, while you can always reply when a learner contacts you first.';
+  }
+  if(!main.querySelector('.teacher-tracks')&&introEl)introEl.insertAdjacentHTML('afterend',teacherTrackHTML());
+  main.querySelectorAll('.opportunity-section').forEach(function(section){
+    const h=section.querySelector('h2');
+    if(!h)return;
+    if(/Hiring institutions/i.test(h.textContent))h.textContent='Schools & colleges hiring teachers';
+    if(/Student \/ parent requirements/i.test(h.textContent))h.textContent='Learners looking for your skills';
+  });
+};
+
+const talindTeacherWorkspaceBase=workspace;
+workspace=function(){
+  talindTeacherWorkspaceBase();
+  if(!(talindCurrentUser&&state.role==='teacher'))return;
+  const main=document.querySelector('#main');
+  if(!main||main.querySelector('.teacher-tracks'))return;
+  const head=main.querySelector('.clean-workspace-head');
+  if(head)head.insertAdjacentHTML('afterend',teacherTrackHTML());
+};
+
+const talindTeacherActivityBase=activity;
+activity=function(){
+  talindTeacherActivityBase();
+  if(!(talindCurrentUser&&state.role==='teacher'))return;
+  const introEl=document.querySelector('#main .intro');
+  if(introEl){
+    const h=introEl.querySelector('h1');
+    const p=introEl.querySelector('p');
+    if(h)h.textContent='Your applications, learner conversations and service engagements.';
+    if(p)p.textContent='Employment conversations and independent teaching services stay clearly separated here.';
+  }
+  const stats=document.querySelectorAll('#main .stats .stat span');
+  const labels=['Active opportunities','Conversations','Confirmed'];
+  stats.forEach(function(el,i){if(labels[i])el.textContent=labels[i]});
+};
+
+const talindTeacherProfileChromeBase=cleanPageChrome;
+cleanPageChrome=function(){
+  talindTeacherProfileChromeBase();
+  if(!(talindCurrentUser&&state.role==='teacher'&&location.hash==='#profile'))return;
+  const current=typeof steps==='function'?steps()[registration.step]:null;
+  if(current&&current.id==='purpose'){
+    const panel=document.querySelector('#main .onboarding-panel');
+    if(panel&&!panel.querySelector('.teacher-purpose-help')){
+      const h=panel.querySelector('h2');
+      if(h)h.insertAdjacentHTML('afterend',
+        '<div class="teacher-purpose-help"><strong>Choose one or both paths.</strong>'+
+        '<div class="teacher-purpose-columns"><div><b>Find a job — Free</b><p>Use Talind to find schools and colleges, apply and communicate about employment.</p></div>'+
+        '<div><b>Offer tuition / coaching / training — Membership</b><p>Publish your services and proactively contact learner requirements. If a learner contacts you first, you can reply inside Talind even before membership.</p></div></div></div>'
+      );
+    }
+  }
+};
+
+
+// Talind Institution Journey V7
+// Separates the School / College account into hiring, admissions and partnership
+// workflows. Existing Supabase membership and contact-access rules remain intact.
+
+function institutionJourneyData(){
+  const r=record(),f=r.fields||{};
+  const purposes=typeof selectedPurposes==='function'?selectedPurposes():[];
+  const conns=typeof v2RoleConnections==='function'?v2RoleConnections():[];
+  const teachers=typeof liveTeacherItems==='function'?liveTeacherItems():[];
+  const providers=typeof liveTrainingItems==='function'?liveTrainingItems():[];
+  const membership=typeof matchMembershipActive==='function'&&matchMembershipActive('institution');
+  const teacherConns=conns.filter(function(c){return c.context_type==='teacher_profile'&&c.status!=='closed'});
+  const providerConns=conns.filter(function(c){return c.context_type==='training_profile'&&c.status!=='closed'});
+  const admissionReady=purposes.includes('Promote admissions')&&!!f.admissionGrades&&!!f.admissionCycle;
+  return {
+    r:r,f:f,purposes:purposes,membership:membership,
+    teachers:teachers,providers:providers,
+    teacherConns:teacherConns,providerConns:providerConns,
+    admissionReady:admissionReady,
+    openings:Array.isArray(r.openings)?r.openings:[]
+  };
+}
+
+function institutionPurposeHTML(){
+  const d=institutionJourneyData();
+  const hiring=d.purposes.includes('Hire teachers / professors');
+  const admissions=d.purposes.includes('Promote admissions');
+  const partnerships=d.purposes.includes('Training association / partnership');
+  const memberBadge='<span class="institution-plan-pill '+(d.membership?'active':'')+'">'+(d.membership?'MEMBERSHIP ACTIVE':'MEMBERSHIP')+'</span>';
+
+  return '<section class="institution-purpose-grid">'+
+    '<div class="institution-purpose-card hiring">'+
+      '<div class="institution-purpose-head"><span class="institution-purpose-no">01</span><div><span class="eyebrow">HIRING</span><h2>Build your teaching team</h2></div>'+memberBadge+'</div>'+
+      '<p>Post clear vacancies, discover relevant teachers and manage recruitment conversations in one place.</p>'+
+      '<div class="institution-purpose-progress">'+
+        '<span class="'+(hiring?'done':'')+'">Hiring enabled '+(hiring?'✓':'')+'</span>'+
+        '<span class="'+(d.openings.length?'done':'')+'">'+d.openings.length+' job opening'+(d.openings.length===1?'':'s')+'</span>'+
+        '<span class="'+(d.teacherConns.length?'done':'')+'">'+d.teacherConns.length+' candidate conversation'+(d.teacherConns.length===1?'':'s')+'</span>'+
+      '</div>'+
+      '<div class="workspace-links">'+
+        (!hiring
+          ?'<button class="btn outline" onclick="startInstitutionPurpose(\'Hire teachers / professors\')">Enable hiring</button>'
+          :'<button class="btn" onclick="navigate(\'explore\')">Discover teachers</button><button class="btn outline" onclick="startInstitutionPurpose(\'Hire teachers / professors\')">Manage openings</button>')+
+      '</div>'+
+    '</div>'+
+    '<div class="institution-purpose-card admissions">'+
+      '<div class="institution-purpose-head"><span class="institution-purpose-no">02</span><div><span class="eyebrow">ADMISSIONS</span><h2>Reach students & parents</h2></div>'+memberBadge+'</div>'+
+      '<p>Present your institution, programmes, intake and admission details so relevant families can discover you through Talind.</p>'+
+      '<div class="institution-purpose-progress">'+
+        '<span class="'+(admissions?'done':'')+'">Admissions enabled '+(admissions?'✓':'')+'</span>'+
+        '<span class="'+(d.admissionReady?'done':'')+'">Admission details '+(d.admissionReady?'ready ✓':'to complete')+'</span>'+
+        '<span class="'+(d.r.complete?'done':'')+'">Institution profile '+(d.r.complete?'ready ✓':'in progress')+'</span>'+
+      '</div>'+
+      '<div class="workspace-links">'+
+        (!admissions
+          ?'<button class="btn outline" onclick="startInstitutionPurpose(\'Promote admissions\')">Enable admissions</button>'
+          :'<button class="btn" onclick="startInstitutionPurpose(\'Promote admissions\')">Manage admission details</button>')+
+      '</div>'+
+    '</div>'+
+    '<div class="institution-purpose-card partnerships">'+
+      '<div class="institution-purpose-head"><span class="institution-purpose-no">03</span><div><span class="eyebrow">TRAINING & PARTNERSHIPS</span><h2>Find training partners</h2></div>'+memberBadge+'</div>'+
+      '<p>Discover providers for teacher development, student programmes, workshops and longer-term institutional partnerships.</p>'+
+      '<div class="institution-purpose-progress">'+
+        '<span class="'+(partnerships?'done':'')+'">Partnerships enabled '+(partnerships?'✓':'')+'</span>'+
+        '<span class="'+(d.providers.length?'done':'')+'">'+d.providers.length+' provider match'+(d.providers.length===1?'':'es')+'</span>'+
+        '<span class="'+(d.providerConns.length?'done':'')+'">'+d.providerConns.length+' active conversation'+(d.providerConns.length===1?'':'s')+'</span>'+
+      '</div>'+
+      '<div class="workspace-links">'+
+        (!partnerships
+          ?'<button class="btn outline" onclick="startInstitutionPurpose(\'Training association / partnership\')">Enable partnerships</button>'
+          :'<button class="btn" onclick="navigate(\'explore\')">Explore training partners</button>')+
+      '</div>'+
+    '</div>'+
+  '</section>'+
+  (!d.membership
+    ?'<div class="notice institution-membership-note"><strong>Your institution profile can be prepared now.</strong> Institution Membership unlocks the commercial hiring, admissions and partnership experience. <button class="text-button" onclick="billing.audience=\'institution\';navigate(\'plans\')">View membership</button></div>'
+    :'');
+}
+
+function institutionMatchActions(item){
+  const c=matchConnection(item),member=matchMembershipActive('institution'),parts=[];
+  const isTeacher=item.kind==='teacher';
+  const noun=isTeacher?'teacher':'training provider';
+  const status=!c
+    ?(isTeacher?'Teacher match':'Training partner')
+    :c.status==='shortlisted'?'Shortlisted'
+    :c.status==='interest_expressed'?'Conversation started'
+    :c.status==='accepted'?'Confirmed'
+    :matchStatusLabel(c);
+
+  if(!c)parts.push('<button class="btn outline" onclick="matchSetStatus(\''+item.key+'\',\'shortlisted\')">Shortlist '+noun+'</button>');
+
+  if(member){
+    if(!c||c.status!=='closed')parts.push('<button class="btn" onclick="matchOpenChat(\''+item.key+'\')">'+(c&&c.last_message_at?'Open conversation':'Start conversation')+'</button>');
+    if(c)parts.push('<button class="btn outline" onclick="matchViewContact(\''+item.key+'\')">View contact</button>');
+  }else{
+    parts.push('<button class="btn" onclick="billing.audience=\'institution\';navigate(\'plans\')">Activate Institution Membership</button>');
+  }
+
+  return '<div class="institution-match-state"><span class="badge">'+esc(status)+'</span>'+
+    '<span class="'+(member?'institution-access active':'institution-access')+'">'+(member?'Membership active':'Membership required to contact')+'</span></div>'+
+    '<div class="dialog-actions institution-match-actions">'+parts.join('')+'</div>';
+}
+
+const talindInstitutionMatchActionsBase=matchActions;
+matchActions=function(item){
+  if(state.role==='institution'&&item&&['teacher','training'].includes(item.kind))return institutionMatchActions(item);
+  return talindInstitutionMatchActionsBase(item);
+};
+
+const talindInstitutionCardBase=liveMatchCard;
+liveMatchCard=function(i){
+  if(!(state.role==='institution'&&i&&['teacher','training'].includes(i.kind)))return talindInstitutionCardBase(i);
+  const c=matchConnection(i),member=matchMembershipActive('institution');
+  const isTeacher=i.kind==='teacher';
+  const status=!c?(isTeacher?'Teacher match':'Training partner')
+    :c.status==='shortlisted'?'Shortlisted'
+    :c.status==='interest_expressed'?'Conversation started'
+    :c.status==='accepted'?'Confirmed'
+    :matchStatusLabel(c);
+
+  return '<article class="card institution-match-card '+(member?'':'locked')+'">'+
+    '<div class="card-top"><span class="badge">'+esc(status)+'</span><span class="'+(member?'institution-access active':'institution-access')+'">'+(member?'Membership active':'Preview available')+'</span></div>'+
+    '<div class="card-body">'+
+      '<div class="identity"><div class="initials">'+esc(i.initials)+'</div><div><h3>'+esc(i.name)+'</h3><small>'+esc(i.subtitle)+'</small></div></div>'+
+      '<h3>'+esc(i.title)+'</h3><p class="desc">'+esc(i.desc||'')+'</p>'+
+      '<div class="tags">'+(i.tags||[]).slice(0,6).map(function(t){return '<span>'+esc(t)+'</span>'}).join('')+'</div>'+
+      '<div class="meta"><span>'+esc(i.location)+'</span><span>'+esc(i.mode)+'</span></div>'+
+    '</div>'+
+    '<div class="card-foot"><div class="price"><span>Why this match</span><small>'+esc(i.matchReason)+'</small></div><button class="btn light" onclick="liveMatchDetail(\''+i.key+'\')">View '+(isTeacher?'teacher':'provider')+' →</button></div>'+
+  '</article>';
+};
+
+const talindInstitutionExploreBase=explore;
+explore=function(){
+  talindInstitutionExploreBase();
+  if(!(talindCurrentUser&&state.role==='institution'))return;
+  const main=document.querySelector('#main');
+  if(!main)return;
+  const introEl=main.querySelector('.intro');
+  if(introEl){
+    const h=introEl.querySelector('h1');
+    const p=introEl.querySelector('p');
+    if(h)h.textContent='Build your institution through the right people and partnerships.';
+    if(p)p.textContent='Discover teachers and training providers matched to your institution. Hiring, admissions and partnerships are managed through Institution Membership.';
+  }
+  if(!main.querySelector('.institution-purpose-grid')&&introEl)introEl.insertAdjacentHTML('afterend',institutionPurposeHTML());
+  main.querySelectorAll('.opportunity-section').forEach(function(section){
+    const h=section.querySelector('h2');
+    if(!h)return;
+    if(/Teacher & expert profiles/i.test(h.textContent))h.textContent='Teachers matched to your institution';
+    if(/Training partners/i.test(h.textContent))h.textContent='Training providers for your institution';
+  });
+};
+
+const talindInstitutionWorkspaceBase=workspace;
+workspace=function(){
+  talindInstitutionWorkspaceBase();
+  if(!(talindCurrentUser&&state.role==='institution'))return;
+  const main=document.querySelector('#main');
+  if(!main||main.querySelector('.institution-purpose-grid'))return;
+  const head=main.querySelector('.clean-workspace-head');
+  if(head)head.insertAdjacentHTML('afterend',institutionPurposeHTML());
+};
+
+const talindInstitutionActivityBase=activity;
+activity=function(){
+  talindInstitutionActivityBase();
+  if(!(talindCurrentUser&&state.role==='institution'))return;
+  const introEl=document.querySelector('#main .intro');
+  if(introEl){
+    const h=introEl.querySelector('h1');
+    const p=introEl.querySelector('p');
+    if(h)h.textContent='Your recruitment and partnership conversations.';
+    if(p)p.textContent='Track shortlisted teachers, training partners and ongoing institutional conversations from one place.';
+  }
+  const stats=document.querySelectorAll('#main .stats .stat span');
+  const labels=['Active relationships','Conversations','Confirmed'];
+  stats.forEach(function(el,i){if(labels[i])el.textContent=labels[i]});
+};
+
+const talindInstitutionProfileChromeBase=cleanPageChrome;
+cleanPageChrome=function(){
+  talindInstitutionProfileChromeBase();
+  if(!(talindCurrentUser&&state.role==='institution'&&location.hash==='#profile'))return;
+  const current=typeof steps==='function'?steps()[registration.step]:null;
+  if(current&&current.id==='purpose'){
+    const panel=document.querySelector('#main .onboarding-panel');
+    if(panel&&!panel.querySelector('.institution-purpose-help')){
+      const h=panel.querySelector('h2');
+      if(h)h.insertAdjacentHTML('afterend',
+        '<div class="institution-purpose-help"><strong>Select everything your institution wants Talind to support.</strong>'+
+        '<div class="institution-purpose-help-grid">'+
+          '<div><b>Hire teachers / professors</b><p>Create vacancies and discover relevant educators.</p></div>'+
+          '<div><b>Promote admissions</b><p>Show programmes, intake and admission information to students and parents.</p></div>'+
+          '<div><b>Training association / partnership</b><p>Find providers for workshops, development and institutional programmes.</p></div>'+
+        '</div><p class="institution-help-note">One Institution Membership is designed to cover these institutional growth activities.</p></div>'
+      );
+    }
+  }
+  if(current&&current.id==='openings'){
+    const panel=document.querySelector('#main .onboarding-panel');
+    if(panel&&!panel.querySelector('.institution-opening-help')){
+      const h=panel.querySelector('h2');
+      if(h)h.insertAdjacentHTML('afterend',
+        '<div class="institution-opening-help"><strong>Create vacancies that can be matched accurately.</strong><p>Add the subject/department, curriculum, qualification, experience, location, salary and required skills for each opening.</p></div>'
+      );
+    }
+  }
+};
+
+
+// Talind Training Provider Journey V10
+// Training Provider dashboard, discovery and membership workflow.
+
+function trainingProviderJourneyData(){
+  const r=record(),purposes=selectedPurposes(),conns=typeof v2RoleConnections==='function'?v2RoleConnections():[];
+  const membership=matchMembershipActive('training');
+  const learnerConns=conns.filter(function(c){return c.context_type==='learner_requirement'&&c.status!=='closed'});
+  const institutionConns=conns.filter(function(c){return c.context_type==='institution_profile'&&c.status!=='closed'});
+  const learners=typeof liveRequirementItems==='function'?liveRequirementItems():[];
+  const institutions=typeof liveInstitutionItems==='function'?liveInstitutionItems().filter(function(i){return i.publicRow&&i.publicRow.purposes&&i.publicRow.purposes.includes('Training association / partnership')}):[];
+  return {r:r,purposes:purposes,membership:membership,learnerConns:learnerConns,institutionConns:institutionConns,learners:learners,institutions:institutions,courses:r.courses||[]};
+}
+function trainingProviderTracksHTML(){
+  const d=trainingProviderJourneyData();
+  const individual=d.purposes.includes('Individual learner enrolment'),institutional=d.purposes.includes('Institutional partnerships');
+  const badge='<span class="training-plan-pill '+(d.membership?'active':'')+'">'+(d.membership?'MEMBERSHIP ACTIVE':'MEMBERSHIP')+'</span>';
+  return '<section class="training-provider-tracks">'+
+    '<div class="training-provider-track learner">'+
+      '<div class="training-track-head"><span class="training-track-no">01</span><div><span class="eyebrow">INDIVIDUAL LEARNERS</span><h2>Publish courses & reach learners</h2></div>'+badge+'</div>'+
+      '<p>Create separate programmes with their own audience, fees, batches, schedule, trainer, outcomes and certification.</p>'+
+      '<div class="training-track-progress"><span class="'+(individual?'done':'')+'">Learner business '+(individual?'✓':'')+'</span><span class="'+(d.courses.length?'done':'')+'">'+d.courses.length+' programme'+(d.courses.length===1?'':'s')+'</span><span class="'+(d.learnerConns.length?'done':'')+'">'+d.learnerConns.length+' learner conversation'+(d.learnerConns.length===1?'':'s')+'</span></div>'+
+      '<div class="workspace-links">'+(!individual?'<button class="btn outline" onclick="startTrainingPurpose(\'Individual learner enrolment\')">Enable learner programmes</button>':'<button class="btn" onclick="startTrainingPurpose(\'Individual learner enrolment\')">Manage programmes</button><button class="btn outline" onclick="navigate(\'explore\')">Find learner needs</button>')+'</div>'+
+    '</div>'+
+    '<div class="training-provider-track institution">'+
+      '<div class="training-track-head"><span class="training-track-no">02</span><div><span class="eyebrow">INSTITUTIONAL BUSINESS</span><h2>Build school & college partnerships</h2></div>'+badge+'</div>'+
+      '<p>Position workshops, teacher development, student skill programmes, customised training and longer-term contracts for institutions.</p>'+
+      '<div class="training-track-progress"><span class="'+(institutional?'done':'')+'">Partnership business '+(institutional?'✓':'')+'</span><span class="'+(d.institutions.length?'done':'')+'">'+d.institutions.length+' institution match'+(d.institutions.length===1?'':'es')+'</span><span class="'+(d.institutionConns.length?'done':'')+'">'+d.institutionConns.length+' active conversation'+(d.institutionConns.length===1?'':'s')+'</span></div>'+
+      '<div class="workspace-links">'+(!institutional?'<button class="btn outline" onclick="startTrainingPurpose(\'Institutional partnerships\')">Enable institutional partnerships</button>':'<button class="btn" onclick="startTrainingPurpose(\'Institutional partnerships\')">Manage partnership offer</button><button class="btn outline" onclick="navigate(\'explore\')">Find institutions</button>')+'</div>'+
+    '</div>'+
+  '</section>'+
+  (!d.membership?'<div class="notice training-membership-note"><strong>Your Training Provider profile can be prepared now.</strong> Membership unlocks proactive learner and institutional engagement. <button class="text-button" onclick="billing.audience=\'training\';navigate(\'plans\')">View membership</button></div>':'');
+}
+
+function trainingProviderLocked(){return state.role==='training'&&!matchMembershipActive('training')}
+function openTrainingProviderMembership(){billing.audience='training';navigate('plans');toast('Training Provider membership is required to contact learners or institutions.')}
+
+const trainingMatchSetStatusBase=matchSetStatus;
+matchSetStatus=async function(key,status){
+  if(trainingProviderLocked()){openTrainingProviderMembership();return}
+  return trainingMatchSetStatusBase(key,status);
+};
+const trainingMatchOpenChatBase=matchOpenChat;
+matchOpenChat=async function(key){
+  if(trainingProviderLocked()){openTrainingProviderMembership();return}
+  return trainingMatchOpenChatBase(key);
+};
+const trainingMatchViewContactBase=matchViewContact;
+matchViewContact=async function(key){
+  if(trainingProviderLocked()){openTrainingProviderMembership();return}
+  return trainingMatchViewContactBase(key);
+};
+
+function trainingProviderMatchActions(item){
+  const c=matchConnection(item),member=matchMembershipActive('training'),parts=[];
+  const isLearner=item.kind==='requirement';
+  const status=!c?(isLearner?'Learner requirement':'Institution opportunity'):c.status==='shortlisted'?'Saved':c.status==='interest_expressed'?'Conversation started':c.status==='accepted'?'Confirmed':matchStatusLabel(c);
+  if(!c)parts.push('<button class="btn outline" onclick="matchSetStatus(\''+item.key+'\',\'shortlisted\')">Save opportunity</button>');
+  if(member){
+    if(!c||c.status!=='closed')parts.push('<button class="btn" onclick="matchOpenChat(\''+item.key+'\')">'+(c&&c.last_message_at?'Open conversation':isLearner?'Contact learner':'Contact institution')+'</button>');
+    if(c)parts.push('<button class="btn outline" onclick="matchViewContact(\''+item.key+'\')">View contact</button>');
+  }else{
+    parts.push('<button class="btn" onclick="openTrainingProviderMembership()">Activate Training Provider Membership</button>');
+  }
+  return '<div class="training-match-state"><span class="badge">'+esc(status)+'</span><span class="'+(member?'training-access active':'training-access')+'">'+(member?'Membership active':'Membership required to contact')+'</span></div><div class="dialog-actions training-match-actions">'+parts.join('')+'</div>';
+}
+
+const trainingMatchActionsBase=matchActions;
+matchActions=function(item){
+  if(state.role==='training'&&item&&['requirement','institution'].includes(item.kind))return trainingProviderMatchActions(item);
+  return trainingMatchActionsBase(item);
+};
+
+const trainingCardBase=liveMatchCard;
+liveMatchCard=function(i){
+  if(!(state.role==='training'&&i&&['requirement','institution'].includes(i.kind)))return trainingCardBase(i);
+  const c=matchConnection(i),member=matchMembershipActive('training'),isLearner=i.kind==='requirement';
+  const status=!c?(isLearner?'Learner requirement':'Institution opportunity'):c.status==='shortlisted'?'Saved':c.status==='interest_expressed'?'Conversation started':c.status==='accepted'?'Confirmed':matchStatusLabel(c);
+  return '<article class="card training-match-card '+(member?'':'locked')+'"><div class="card-top"><span class="badge">'+esc(status)+'</span><span class="'+(member?'training-access active':'training-access')+'">'+(member?'Membership active':'Preview available')+'</span></div>'+
+    '<div class="card-body"><div class="identity"><div class="initials">'+esc(i.initials)+'</div><div><h3>'+esc(i.name)+'</h3><small>'+esc(i.subtitle)+'</small></div></div><h3>'+esc(i.title)+'</h3><p class="desc">'+esc(i.desc||'')+'</p><div class="tags">'+(i.tags||[]).slice(0,6).map(function(t){return '<span>'+esc(t)+'</span>'}).join('')+'</div><div class="meta"><span>'+esc(i.location)+'</span><span>'+esc(i.mode)+'</span></div></div>'+
+    '<div class="card-foot"><div class="price"><span>Why this match</span><small>'+esc(i.matchReason)+'</small></div><button class="btn light" onclick="liveMatchDetail(\''+i.key+'\')">View opportunity →</button></div></article>';
+};
+
+const trainingExploreBase=explore;
+explore=function(){
+  if(talindCurrentUser&&state.role==='training'){
+    const sections=opportunitiesForRole();
+    $('#main').innerHTML=intro('TALIND BUSINESS MATCH','Grow your training business through the right learners and institutions.','Keep learner programmes and institutional partnerships separate, while managing both through one Training Provider account.','Training Provider membership')+
+      trainingProviderTracksHTML()+sections.map(opportunitySection).join('');
+    document.querySelectorAll('#main .opportunity-section').forEach(function(section){
+      const h=section.querySelector('h2');if(!h)return;
+      if(/Individual learner requirements/i.test(h.textContent))h.textContent='Learners looking for programmes like yours';
+      if(/Institutional partnership opportunities/i.test(h.textContent))h.textContent='Schools & colleges looking for training partners';
+    });
+    side('explore');return;
+  }
+  trainingExploreBase();
+};
+
+const trainingWorkspaceBase=workspace;
+workspace=function(){
+  trainingWorkspaceBase();
+  if(!(talindCurrentUser&&state.role==='training'))return;
+  const main=document.querySelector('#main');if(!main||main.querySelector('.training-provider-tracks'))return;
+  const head=main.querySelector('.clean-workspace-head');
+  if(head)head.insertAdjacentHTML('afterend',trainingProviderTracksHTML());
+};
+
+const trainingActivityBase=activity;
+activity=function(){
+  trainingActivityBase();
+  if(!(talindCurrentUser&&state.role==='training'))return;
+  const introEl=document.querySelector('#main .intro');
+  if(introEl){const h=introEl.querySelector('h1'),p=introEl.querySelector('p');if(h)h.textContent='Your learner and institutional business conversations.';if(p)p.textContent='Track programme enquiries and institutional partnership discussions from one place.'}
+  const stats=document.querySelectorAll('#main .stats .stat span'),labels=['Active opportunities','Conversations','Confirmed'];
+  stats.forEach(function(el,i){if(labels[i])el.textContent=labels[i]});
+};
+
+const trainingActivityActionsBase=v2ActivityActions;
+v2ActivityActions=function(c,item){
+  if(state.role==='training'&&item){
+    const out=['<button class="btn light" onclick="liveMatchDetail(\''+item.key+'\')">Open opportunity</button>'];
+    if(matchMembershipActive('training')&&c.status!=='closed'){
+      out.push('<button class="btn" onclick="matchOpenChat(\''+item.key+'\')">Chat</button>');
+      out.push('<button class="btn outline" onclick="matchViewContact(\''+item.key+'\')">View contact</button>');
+    }else if(!matchMembershipActive('training')){
+      out.push('<button class="btn" onclick="openTrainingProviderMembership()">Activate membership</button>');
+    }
+    if(c.status==='closed')out.push('<button class="btn outline" onclick="v2ReopenConnection(\''+c.id+'\')">Reopen</button>');
+    else out.push('<button class="text-button" onclick="v2CloseConnection(\''+c.id+'\')">Remove from active list</button>');
+    return out.join('');
+  }
+  return trainingActivityActionsBase(c,item);
+};

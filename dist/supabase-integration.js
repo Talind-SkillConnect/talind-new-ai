@@ -35,6 +35,7 @@ function cloudSafeRecord(r){
       size:Number(e.size||0),
       kind:e.kind||'',
       skill:e.skill||'',
+      purpose:e.purpose||'',
       url:''
     })),
     links:(r.links||[]).map(x=>({...x})),
