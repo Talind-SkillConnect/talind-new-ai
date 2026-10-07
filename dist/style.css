@@ -337,3 +337,11 @@ footer .text-button{font-size:12px;padding:0}
 .reset-password-wrap{max-width:620px;margin:25px auto}
 .reset-password-wrap .panel{margin-top:0}
 @media(max-width:760px){footer{align-items:flex-start}.legal-links{width:100%;gap:10px}.legal-page section{padding:18px}.legal-page-head{padding-bottom:18px}}
+
+
+/* Talind Secure Documents V12 */
+.document-storage-note{display:flex;gap:10px;align-items:flex-start}
+.skill-row .workspace-links{justify-content:flex-end}
+.skill-row .workspace-links .btn,.admission-asset-row .workspace-links .btn{padding:8px 10px;font-size:11px}
+.admission-asset-row .workspace-links{flex-shrink:0}
+@media(max-width:760px){.skill-row .workspace-links,.admission-asset-row .workspace-links{width:100%;justify-content:flex-start}}
