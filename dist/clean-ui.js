@@ -928,3 +928,138 @@ cleanPageChrome=function(){
     }
   }
 };
+
+
+// Talind Training Provider Journey V10
+// Training Provider dashboard, discovery and membership workflow.
+
+function trainingProviderJourneyData(){
+  const r=record(),purposes=selectedPurposes(),conns=typeof v2RoleConnections==='function'?v2RoleConnections():[];
+  const membership=matchMembershipActive('training');
+  const learnerConns=conns.filter(function(c){return c.context_type==='learner_requirement'&&c.status!=='closed'});
+  const institutionConns=conns.filter(function(c){return c.context_type==='institution_profile'&&c.status!=='closed'});
+  const learners=typeof liveRequirementItems==='function'?liveRequirementItems():[];
+  const institutions=typeof liveInstitutionItems==='function'?liveInstitutionItems().filter(function(i){return i.publicRow&&i.publicRow.purposes&&i.publicRow.purposes.includes('Training association / partnership')}):[];
+  return {r:r,purposes:purposes,membership:membership,learnerConns:learnerConns,institutionConns:institutionConns,learners:learners,institutions:institutions,courses:r.courses||[]};
+}
+function trainingProviderTracksHTML(){
+  const d=trainingProviderJourneyData();
+  const individual=d.purposes.includes('Individual learner enrolment'),institutional=d.purposes.includes('Institutional partnerships');
+  const badge='<span class="training-plan-pill '+(d.membership?'active':'')+'">'+(d.membership?'MEMBERSHIP ACTIVE':'MEMBERSHIP')+'</span>';
+  return '<section class="training-provider-tracks">'+
+    '<div class="training-provider-track learner">'+
+      '<div class="training-track-head"><span class="training-track-no">01</span><div><span class="eyebrow">INDIVIDUAL LEARNERS</span><h2>Publish courses & reach learners</h2></div>'+badge+'</div>'+
+      '<p>Create separate programmes with their own audience, fees, batches, schedule, trainer, outcomes and certification.</p>'+
+      '<div class="training-track-progress"><span class="'+(individual?'done':'')+'">Learner business '+(individual?'✓':'')+'</span><span class="'+(d.courses.length?'done':'')+'">'+d.courses.length+' programme'+(d.courses.length===1?'':'s')+'</span><span class="'+(d.learnerConns.length?'done':'')+'">'+d.learnerConns.length+' learner conversation'+(d.learnerConns.length===1?'':'s')+'</span></div>'+
+      '<div class="workspace-links">'+(!individual?'<button class="btn outline" onclick="startTrainingPurpose(\'Individual learner enrolment\')">Enable learner programmes</button>':'<button class="btn" onclick="startTrainingPurpose(\'Individual learner enrolment\')">Manage programmes</button><button class="btn outline" onclick="navigate(\'explore\')">Find learner needs</button>')+'</div>'+
+    '</div>'+
+    '<div class="training-provider-track institution">'+
+      '<div class="training-track-head"><span class="training-track-no">02</span><div><span class="eyebrow">INSTITUTIONAL BUSINESS</span><h2>Build school & college partnerships</h2></div>'+badge+'</div>'+
+      '<p>Position workshops, teacher development, student skill programmes, customised training and longer-term contracts for institutions.</p>'+
+      '<div class="training-track-progress"><span class="'+(institutional?'done':'')+'">Partnership business '+(institutional?'✓':'')+'</span><span class="'+(d.institutions.length?'done':'')+'">'+d.institutions.length+' institution match'+(d.institutions.length===1?'':'es')+'</span><span class="'+(d.institutionConns.length?'done':'')+'">'+d.institutionConns.length+' active conversation'+(d.institutionConns.length===1?'':'s')+'</span></div>'+
+      '<div class="workspace-links">'+(!institutional?'<button class="btn outline" onclick="startTrainingPurpose(\'Institutional partnerships\')">Enable institutional partnerships</button>':'<button class="btn" onclick="startTrainingPurpose(\'Institutional partnerships\')">Manage partnership offer</button><button class="btn outline" onclick="navigate(\'explore\')">Find institutions</button>')+'</div>'+
+    '</div>'+
+  '</section>'+
+  (!d.membership?'<div class="notice training-membership-note"><strong>Your Training Provider profile can be prepared now.</strong> Membership unlocks proactive learner and institutional engagement. <button class="text-button" onclick="billing.audience=\'training\';navigate(\'plans\')">View membership</button></div>':'');
+}
+
+function trainingProviderLocked(){return state.role==='training'&&!matchMembershipActive('training')}
+function openTrainingProviderMembership(){billing.audience='training';navigate('plans');toast('Training Provider membership is required to contact learners or institutions.')}
+
+const trainingMatchSetStatusBase=matchSetStatus;
+matchSetStatus=async function(key,status){
+  if(trainingProviderLocked()){openTrainingProviderMembership();return}
+  return trainingMatchSetStatusBase(key,status);
+};
+const trainingMatchOpenChatBase=matchOpenChat;
+matchOpenChat=async function(key){
+  if(trainingProviderLocked()){openTrainingProviderMembership();return}
+  return trainingMatchOpenChatBase(key);
+};
+const trainingMatchViewContactBase=matchViewContact;
+matchViewContact=async function(key){
+  if(trainingProviderLocked()){openTrainingProviderMembership();return}
+  return trainingMatchViewContactBase(key);
+};
+
+function trainingProviderMatchActions(item){
+  const c=matchConnection(item),member=matchMembershipActive('training'),parts=[];
+  const isLearner=item.kind==='requirement';
+  const status=!c?(isLearner?'Learner requirement':'Institution opportunity'):c.status==='shortlisted'?'Saved':c.status==='interest_expressed'?'Conversation started':c.status==='accepted'?'Confirmed':matchStatusLabel(c);
+  if(!c)parts.push('<button class="btn outline" onclick="matchSetStatus(\''+item.key+'\',\'shortlisted\')">Save opportunity</button>');
+  if(member){
+    if(!c||c.status!=='closed')parts.push('<button class="btn" onclick="matchOpenChat(\''+item.key+'\')">'+(c&&c.last_message_at?'Open conversation':isLearner?'Contact learner':'Contact institution')+'</button>');
+    if(c)parts.push('<button class="btn outline" onclick="matchViewContact(\''+item.key+'\')">View contact</button>');
+  }else{
+    parts.push('<button class="btn" onclick="openTrainingProviderMembership()">Activate Training Provider Membership</button>');
+  }
+  return '<div class="training-match-state"><span class="badge">'+esc(status)+'</span><span class="'+(member?'training-access active':'training-access')+'">'+(member?'Membership active':'Membership required to contact')+'</span></div><div class="dialog-actions training-match-actions">'+parts.join('')+'</div>';
+}
+
+const trainingMatchActionsBase=matchActions;
+matchActions=function(item){
+  if(state.role==='training'&&item&&['requirement','institution'].includes(item.kind))return trainingProviderMatchActions(item);
+  return trainingMatchActionsBase(item);
+};
+
+const trainingCardBase=liveMatchCard;
+liveMatchCard=function(i){
+  if(!(state.role==='training'&&i&&['requirement','institution'].includes(i.kind)))return trainingCardBase(i);
+  const c=matchConnection(i),member=matchMembershipActive('training'),isLearner=i.kind==='requirement';
+  const status=!c?(isLearner?'Learner requirement':'Institution opportunity'):c.status==='shortlisted'?'Saved':c.status==='interest_expressed'?'Conversation started':c.status==='accepted'?'Confirmed':matchStatusLabel(c);
+  return '<article class="card training-match-card '+(member?'':'locked')+'"><div class="card-top"><span class="badge">'+esc(status)+'</span><span class="'+(member?'training-access active':'training-access')+'">'+(member?'Membership active':'Preview available')+'</span></div>'+
+    '<div class="card-body"><div class="identity"><div class="initials">'+esc(i.initials)+'</div><div><h3>'+esc(i.name)+'</h3><small>'+esc(i.subtitle)+'</small></div></div><h3>'+esc(i.title)+'</h3><p class="desc">'+esc(i.desc||'')+'</p><div class="tags">'+(i.tags||[]).slice(0,6).map(function(t){return '<span>'+esc(t)+'</span>'}).join('')+'</div><div class="meta"><span>'+esc(i.location)+'</span><span>'+esc(i.mode)+'</span></div></div>'+
+    '<div class="card-foot"><div class="price"><span>Why this match</span><small>'+esc(i.matchReason)+'</small></div><button class="btn light" onclick="liveMatchDetail(\''+i.key+'\')">View opportunity →</button></div></article>';
+};
+
+const trainingExploreBase=explore;
+explore=function(){
+  if(talindCurrentUser&&state.role==='training'){
+    const sections=opportunitiesForRole();
+    $('#main').innerHTML=intro('TALIND BUSINESS MATCH','Grow your training business through the right learners and institutions.','Keep learner programmes and institutional partnerships separate, while managing both through one Training Provider account.','Training Provider membership')+
+      trainingProviderTracksHTML()+sections.map(opportunitySection).join('');
+    document.querySelectorAll('#main .opportunity-section').forEach(function(section){
+      const h=section.querySelector('h2');if(!h)return;
+      if(/Individual learner requirements/i.test(h.textContent))h.textContent='Learners looking for programmes like yours';
+      if(/Institutional partnership opportunities/i.test(h.textContent))h.textContent='Schools & colleges looking for training partners';
+    });
+    side('explore');return;
+  }
+  trainingExploreBase();
+};
+
+const trainingWorkspaceBase=workspace;
+workspace=function(){
+  trainingWorkspaceBase();
+  if(!(talindCurrentUser&&state.role==='training'))return;
+  const main=document.querySelector('#main');if(!main||main.querySelector('.training-provider-tracks'))return;
+  const head=main.querySelector('.clean-workspace-head');
+  if(head)head.insertAdjacentHTML('afterend',trainingProviderTracksHTML());
+};
+
+const trainingActivityBase=activity;
+activity=function(){
+  trainingActivityBase();
+  if(!(talindCurrentUser&&state.role==='training'))return;
+  const introEl=document.querySelector('#main .intro');
+  if(introEl){const h=introEl.querySelector('h1'),p=introEl.querySelector('p');if(h)h.textContent='Your learner and institutional business conversations.';if(p)p.textContent='Track programme enquiries and institutional partnership discussions from one place.'}
+  const stats=document.querySelectorAll('#main .stats .stat span'),labels=['Active opportunities','Conversations','Confirmed'];
+  stats.forEach(function(el,i){if(labels[i])el.textContent=labels[i]});
+};
+
+const trainingActivityActionsBase=v2ActivityActions;
+v2ActivityActions=function(c,item){
+  if(state.role==='training'&&item){
+    const out=['<button class="btn light" onclick="liveMatchDetail(\''+item.key+'\')">Open opportunity</button>'];
+    if(matchMembershipActive('training')&&c.status!=='closed'){
+      out.push('<button class="btn" onclick="matchOpenChat(\''+item.key+'\')">Chat</button>');
+      out.push('<button class="btn outline" onclick="matchViewContact(\''+item.key+'\')">View contact</button>');
+    }else if(!matchMembershipActive('training')){
+      out.push('<button class="btn" onclick="openTrainingProviderMembership()">Activate membership</button>');
+    }
+    if(c.status==='closed')out.push('<button class="btn outline" onclick="v2ReopenConnection(\''+c.id+'\')">Reopen</button>');
+    else out.push('<button class="text-button" onclick="v2CloseConnection(\''+c.id+'\')">Remove from active list</button>');
+    return out.join('');
+  }
+  return trainingActivityActionsBase(c,item);
+};
