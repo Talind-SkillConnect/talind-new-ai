@@ -317,3 +317,180 @@ cleanRoleContext=function(){
 };
 
 cleanRoleContext();
+
+
+// Talind Learner Journey V5
+// Makes the Student / Parent journey read like a guided service flow rather than
+// a relationship-state machine. Existing database and access rules remain unchanged.
+
+function learnerNeedSummary(){
+  const f=record().fields||{};
+  const needs=[f.needs,f.secondNeed].filter(function(x){return x&&x!=='No second requirement'});
+  return needs.length?needs:['Tell us what support you need'];
+}
+
+function learnerJourneyData(){
+  const conns=typeof v2RoleConnections==='function'?v2RoleConnections():[];
+  const teachers=typeof liveTeacherItems==='function'?liveTeacherItems():[];
+  const active=conns.filter(function(c){return c.status!=='closed'});
+  const conversations=active.filter(function(c){return !!c.last_message_at||['interest_expressed','quote_submitted','accepted'].includes(c.status)});
+  const quotes=active.filter(function(c){return c.status==='quote_submitted'});
+  const accepted=active.filter(function(c){return c.status==='accepted'});
+  const contactReady=accepted.filter(function(c){return !!engagementOwnAgreement(c.id,'guardian_contact_consent')});
+  return {teachers:teachers,active:active,conversations:conversations,quotes:quotes,accepted:accepted,contactReady:contactReady};
+}
+
+function learnerJourneyHTML(compact){
+  const r=record(),d=learnerJourneyData();
+  const steps=[
+    {title:'Tell us your need',done:!!r.complete,detail:r.complete?'Requirement ready':'Complete your Student / Parent profile'},
+    {title:'Compare matches',done:d.teachers.length>0,detail:d.teachers.length?d.teachers.length+' teacher match'+(d.teachers.length===1?'':'es'):'Matches appear when relevant teachers publish'},
+    {title:'Start a conversation',done:d.conversations.length>0,detail:d.conversations.length?d.conversations.length+' conversation'+(d.conversations.length===1?'':'s'):'Message a teacher from a match'},
+    {title:'Review a quote',done:d.quotes.length>0||d.accepted.length>0,detail:d.quotes.length?d.quotes.length+' quote awaiting review':d.accepted.length?'Quote accepted':'A teacher can quote after you connect'},
+    {title:'Confirm & connect',done:d.contactReady.length>0,detail:d.contactReady.length?'Direct contact approved':'Accept a quote and approve direct contact'}
+  ];
+  return '<section class="learner-journey '+(compact?'compact':'')+'">'+
+    '<div class="learner-journey-head"><div><span class="eyebrow">YOUR TALIND JOURNEY</span><h2>From requirement to the right support.</h2></div>'+
+      (!r.complete?'<button class="btn" onclick="registration.step=steps().findIndex(function(s){return s.id===\'preferences\'});navigate(\'profile\')">Complete my requirement</button>':'<button class="btn outline" onclick="navigate(\'explore\')">See my matches</button>')+
+    '</div>'+
+    '<div class="learner-journey-steps">'+steps.map(function(s,i){
+      return '<div class="learner-step '+(s.done?'done':'')+'"><span class="learner-step-no">'+(s.done?'✓':i+1)+'</span><div><strong>'+s.title+'</strong><small>'+s.detail+'</small></div></div>';
+    }).join('')+'</div>'+
+  '</section>';
+}
+
+function learnerNeedsCard(){
+  const f=record().fields||{},needs=learnerNeedSummary();
+  return '<section class="learner-needs-card">'+
+    '<div><span class="tiny">WHAT TALIND IS MATCHING FOR YOU</span><div class="learner-need-tags">'+needs.map(function(x){return '<span>'+esc(x)+'</span>'}).join('')+'</div></div>'+
+    '<button class="text-button" onclick="registration.step=steps().findIndex(function(s){return s.id===\'preferences\'});navigate(\'profile\')">Edit requirement</button>'+
+  '</section>';
+}
+
+function learnerMatchActions(item){
+  const c=matchConnection(item),parts=[];
+  const status=!c?'Ready to connect':c.status==='shortlisted'?'Saved for later':c.status==='interest_expressed'?'Conversation started':c.status==='quote_submitted'?'Quote received':c.status==='accepted'?'Quote accepted':matchStatusLabel(c);
+
+  if(!c){
+    parts.push('<button class="btn outline" onclick="matchSetStatus(\''+item.key+'\',\'shortlisted\')">Save teacher</button>');
+    parts.push('<button class="btn" onclick="matchOpenChat(\''+item.key+'\')">Message teacher</button>');
+  }else if(c.status!=='closed'){
+    parts.push('<button class="btn light" onclick="matchOpenChat(\''+item.key+'\')">'+(c.last_message_at?'Open conversation':'Message teacher')+'</button>');
+  }
+
+  if(c&&c.status==='quote_submitted'){
+    parts.push('<button class="btn" onclick="matchAcceptQuote(\''+item.key+'\')">Accept quote</button>');
+  }
+
+  if(c&&c.status==='accepted'){
+    const consent=engagementOwnAgreement(c.id,'guardian_contact_consent');
+    if(!consent){
+      parts.push('<button class="btn" onclick="acceptEngagementAgreement(\''+item.key+'\',\'guardian_contact_consent\')">Approve direct contact</button>');
+    }else{
+      parts.push('<button class="btn outline" onclick="matchViewContact(\''+item.key+'\')">View teacher contact</button>');
+    }
+  }
+
+  return '<div class="learner-match-state"><span class="badge">'+esc(status)+'</span>'+
+    (c&&c.status==='quote_submitted'?'<span class="learner-attention">Action needed: review this quote</span>':'')+
+    '</div><div class="dialog-actions learner-match-actions">'+parts.join('')+'</div>';
+}
+
+const talindLearnerMatchActionsBase=matchActions;
+matchActions=function(item){
+  if(state.role==='learner'&&item&&item.kind==='teacher')return learnerMatchActions(item);
+  return talindLearnerMatchActionsBase(item);
+};
+
+const talindLearnerCardBase=liveMatchCard;
+liveMatchCard=function(i){
+  if(!(state.role==='learner'&&i&&i.kind==='teacher'))return talindLearnerCardBase(i);
+  const c=matchConnection(i);
+  const status=!c?'New match':c.status==='shortlisted'?'Saved':c.status==='interest_expressed'?'Conversation started':c.status==='quote_submitted'?'Quote received':c.status==='accepted'?'Confirmed':matchStatusLabel(c);
+  const quote=c&&c.quote_amount!=null
+    ?'<div class="learner-card-quote"><span>Quote received</span><strong>'+(c.quote_currency||'INR')+' '+Number(c.quote_amount).toLocaleString('en-IN')+'</strong></div>'
+    :'';
+  return '<article class="card learner-match-card">'+
+    '<div class="card-top"><span class="badge">'+esc(status)+'</span><span class="match-fit">'+esc(i.matchReason)+'</span></div>'+
+    '<div class="card-body">'+
+      '<div class="identity"><div class="initials">'+esc(i.initials)+'</div><div><h3>'+esc(i.name)+'</h3><small>'+esc(i.subtitle)+'</small></div></div>'+
+      '<h3>'+esc(i.title)+'</h3>'+
+      '<p class="desc">'+esc(i.desc||'')+'</p>'+
+      '<div class="tags">'+(i.tags||[]).slice(0,5).map(function(t){return '<span>'+esc(t)+'</span>'}).join('')+'</div>'+
+      '<div class="meta"><span>'+esc(i.location)+'</span><span>'+esc(i.mode)+'</span></div>'+
+      quote+
+    '</div>'+
+    '<div class="card-foot"><div class="price"><span>Why this match</span><small>'+esc(i.matchReason)+'</small></div><button class="btn light" onclick="liveMatchDetail(\''+i.key+'\')">View teacher →</button></div>'+
+  '</article>';
+};
+
+const talindLearnerExploreBase=explore;
+explore=function(){
+  talindLearnerExploreBase();
+  if(!(talindCurrentUser&&state.role==='learner'))return;
+  const main=document.querySelector('#main');
+  if(!main)return;
+
+  const introEl=main.querySelector('.intro');
+  if(introEl){
+    const h=introEl.querySelector('h1');
+    const p=introEl.querySelector('p');
+    if(h)h.textContent='People and programmes matched to what you need.';
+    if(p)p.textContent='Compare your matches, start a Talind conversation, review quotes and share direct contact only when you are ready.';
+  }
+
+  if(!main.querySelector('.learner-needs-card')){
+    const anchor=main.querySelector('.intro');
+    if(anchor)anchor.insertAdjacentHTML('afterend',learnerNeedsCard()+learnerJourneyHTML(true));
+  }
+
+  main.querySelectorAll('.opportunity-section').forEach(function(section){
+    const h=section.querySelector('h2');
+    if(!h)return;
+    if(/Teacher & expert matches/i.test(h.textContent))h.textContent='Teachers matched to your requirement';
+    if(/Training & coaching providers/i.test(h.textContent))h.textContent='Courses & coaching you may want to explore';
+    if(/Schools & colleges/i.test(h.textContent))h.textContent='Schools & colleges matching your admission need';
+  });
+};
+
+const talindLearnerWorkspaceBase=workspace;
+workspace=function(){
+  talindLearnerWorkspaceBase();
+  if(!(talindCurrentUser&&state.role==='learner'))return;
+  const main=document.querySelector('#main');
+  if(!main||main.querySelector('.learner-journey'))return;
+  const head=main.querySelector('.clean-workspace-head');
+  if(head)head.insertAdjacentHTML('afterend',learnerJourneyHTML(false));
+};
+
+const talindLearnerActivityBase=activity;
+activity=function(){
+  talindLearnerActivityBase();
+  if(!(talindCurrentUser&&state.role==='learner'))return;
+  const introEl=document.querySelector('#main .intro');
+  if(introEl){
+    const h=introEl.querySelector('h1');
+    const p=introEl.querySelector('p');
+    if(h)h.textContent='Your conversations, quotes and confirmations.';
+    if(p)p.textContent='Continue from where you left off with each teacher or provider.';
+  }
+  const stats=document.querySelectorAll('#main .stats .stat span');
+  const labels=['Current conversations','Conversations started','Confirmed matches'];
+  stats.forEach(function(el,i){if(labels[i])el.textContent=labels[i]});
+};
+
+const talindLearnerProfileChromeBase=cleanPageChrome;
+cleanPageChrome=function(){
+  talindLearnerProfileChromeBase();
+  if(!(talindCurrentUser&&state.role==='learner'&&location.hash==='#profile'))return;
+  const current=typeof steps==='function'?steps()[registration.step]:null;
+  if(current&&current.id==='preferences'){
+    const panel=document.querySelector('#main .onboarding-panel');
+    if(panel&&!panel.querySelector('.learner-requirement-help')){
+      const h=panel.querySelector('h2');
+      if(h)h.insertAdjacentHTML('afterend',
+        '<div class="learner-requirement-help"><strong>Tell Talind what you actually need.</strong><p>These details directly influence your teacher, coaching and admission matches. You can add a second requirement too—for example, tuition plus school admission.</p></div>'
+      );
+    }
+  }
+};
