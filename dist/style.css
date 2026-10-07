@@ -245,3 +245,26 @@ footer .text-button{font-size:12px;padding:0}
   .institution-purpose-help-grid{grid-template-columns:1fr}
   .institution-match-card .institution-access{max-width:60%;font-size:9px}
 }
+
+
+/* Institution Purpose Inputs V8 */
+.multi-opening-intro{margin-bottom:18px}
+.opening-list{display:grid;gap:12px;margin:18px 0}
+.opening-card{border:1px solid var(--line);border-radius:12px;background:white;padding:18px}
+.opening-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px}
+.opening-card-head h3{margin:5px 0 4px;font-size:18px}
+.opening-card-head p{margin:0;color:var(--muted);font-size:12px}
+.opening-meta{display:flex;flex-wrap:wrap;gap:7px;margin:13px 0}
+.opening-meta span{font-size:10px;background:#f5f8f7;border:1px solid #e2e9e6;border-radius:999px;padding:5px 8px;color:#566c65}
+.institution-input-section{border:1px solid var(--line);border-radius:12px;background:white;padding:20px;margin-bottom:18px}
+.institution-input-section>h3{font-size:20px;margin:7px 0 5px}
+.admission-assets{background:#fbfcfb}
+.admission-asset-list{display:grid;gap:8px;margin:14px 0 22px}
+.admission-asset-row{display:flex;align-items:center;justify-content:space-between;gap:16px;border:1px solid var(--line);background:white;border-radius:9px;padding:12px 14px}
+.admission-asset-row strong,.admission-asset-row a{font-size:13px;font-weight:700;color:var(--green)}
+.admission-asset-row p{font-size:11px;color:var(--muted);margin:4px 0 0}
+.admission-upload-note{margin-top:18px}
+@media(max-width:760px){
+  .opening-card-head,.admission-asset-row{display:block}
+  .opening-card-head .badge,.admission-asset-row .text-button{margin-top:10px}
+}
