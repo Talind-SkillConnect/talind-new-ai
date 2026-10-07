@@ -123,3 +123,41 @@ footer .text-button{font-size:12px;padding:0}
   .talind-role-grid{grid-template-columns:1fr}
   .talind-hero-actions .btn{width:100%}
 }
+
+
+/* Talind Learner Journey V5 */
+.learner-needs-card{display:flex;justify-content:space-between;align-items:center;gap:18px;border:1px solid var(--line);background:white;border-radius:12px;padding:17px 20px;margin:0 0 14px}
+.learner-need-tags{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.learner-need-tags span{background:#edf4f1;color:#27594e;border:1px solid #dbe9e4;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:700}
+.learner-journey{border:1px solid var(--line);background:white;border-radius:14px;padding:22px;margin:18px 0 28px}
+.learner-journey.compact{padding:17px 18px;margin:0 0 28px}
+.learner-journey-head{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:18px}
+.learner-journey-head h2{font-size:22px;margin:7px 0 0}
+.learner-journey.compact .learner-journey-head h2{font-size:19px}
+.learner-journey-steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.learner-step{display:flex;gap:10px;align-items:flex-start;background:#f7f9f8;border:1px solid #edf1ef;border-radius:10px;padding:12px;min-width:0}
+.learner-step.done{background:#eef6f2;border-color:#d8e9e2}
+.learner-step-no{width:24px;height:24px;display:grid;place-items:center;border-radius:50%;background:#e3e9e6;color:#60736d;font-size:11px;font-weight:800;flex:0 0 auto}
+.learner-step.done .learner-step-no{background:var(--green);color:white}
+.learner-step strong{display:block;font-size:12px;line-height:1.35;margin-bottom:4px}
+.learner-step small{display:block;font-size:10px;color:var(--muted);line-height:1.45}
+.learner-match-card .match-fit{font-size:10px;font-weight:700;color:#4e6b63;text-align:right;max-width:55%;line-height:1.35}
+.learner-match-card .card-foot .price>span{display:block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:800}
+.learner-match-card .card-foot .price small{display:block;max-width:220px;line-height:1.35;margin-top:3px}
+.learner-card-quote{display:flex;justify-content:space-between;align-items:center;gap:12px;background:#eef6f2;border:1px solid #d7e9e2;border-radius:9px;padding:11px 12px;margin-top:15px}
+.learner-card-quote span{font-size:11px;color:var(--muted)}
+.learner-card-quote strong{font-size:14px;color:var(--green)}
+.learner-match-state{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px}
+.learner-attention{font-size:12px;color:#7b5424;font-weight:700}
+.learner-match-actions{margin-top:12px}
+.learner-requirement-help{background:#eef6f2;border-left:4px solid var(--green);padding:14px 16px;border-radius:8px;margin:-8px 0 20px}
+.learner-requirement-help strong{font-size:14px}
+.learner-requirement-help p{font-size:13px;line-height:1.55;color:var(--muted);margin:6px 0 0}
+@media(max-width:1050px){.learner-journey-steps{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){
+  .learner-needs-card,.learner-journey-head{display:block}
+  .learner-needs-card .text-button,.learner-journey-head .btn{margin-top:13px}
+  .learner-journey-steps{grid-template-columns:1fr}
+  .learner-step{padding:11px}
+  .learner-match-card .match-fit{max-width:62%;font-size:9px}
+}
