@@ -268,3 +268,20 @@ footer .text-button{font-size:12px;padding:0}
   .opening-card-head,.admission-asset-row{display:block}
   .opening-card-head .badge,.admission-asset-row .text-button{margin-top:10px}
 }
+
+
+/* Institution Purpose Fix V9 */
+.institution-purpose-selector{display:grid;gap:11px;margin:18px 0}
+.institution-purpose-option{border:1px solid var(--line);border-radius:11px;padding:14px;background:#fafcfb}
+.institution-purpose-option.selected{background:#eef6f2;border-color:#cfe3db}
+.institution-purpose-option .check-row{align-items:flex-start}
+.institution-purpose-option .check-row strong{display:block;font-size:14px;margin-bottom:4px;color:var(--ink)}
+.institution-purpose-option .check-row small{display:block;font-size:11px;line-height:1.5;color:var(--muted)}
+.institution-purpose-option .btn{margin:10px 0 0 28px}
+.institution-profile-purpose-nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:14px 0 18px}
+.institution-profile-purpose-nav button{appearance:none;border:1px solid var(--line);background:white;border-radius:10px;padding:12px;text-align:left;cursor:pointer}
+.institution-profile-purpose-nav button.active{background:#eef6f2;border-color:#bddbd0}
+.institution-profile-purpose-nav strong{display:block;font-size:12px}
+.institution-profile-purpose-nav small{display:block;font-size:10px;color:var(--muted);margin-top:3px}
+.entry-save-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+@media(max-width:760px){.institution-profile-purpose-nav{grid-template-columns:1fr}}
