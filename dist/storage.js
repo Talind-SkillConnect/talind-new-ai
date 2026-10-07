@@ -176,10 +176,9 @@ attachFile=async function(){
     profile();toast('Document uploaded securely.');
   }catch(error){
     console.error('Talind document upload failed',error);
-    const message=/bucket|not found|row-level security|policy/i.test(error?.message||'')
-      ?'Secure document storage is not activated on Supabase yet.'
-      :(error?.message||'Document upload failed.');
-    toast(message);
+    const message=error?.message||'Document upload failed.';
+    console.error('Supabase Storage upload error:',error);
+    toast('Storage error: '+message);
     if(button){button.disabled=false;button.textContent='+ Upload document'}
   }
 };
@@ -230,10 +229,9 @@ attachAdmissionFile=async function(){
     profile();toast('Admission document uploaded securely.');
   }catch(error){
     console.error('Admission document upload failed',error);
-    const message=/bucket|not found|row-level security|policy/i.test(error?.message||'')
-      ?'Secure document storage is not activated on Supabase yet.'
-      :(error?.message||'Document upload failed.');
-    toast(message);
+    const message=error?.message||'Document upload failed.';
+    console.error('Supabase Storage admission upload error:',error);
+    toast('Storage error: '+message);
     if(button){button.disabled=false;button.textContent='+ Upload admission document'}
   }
 };
