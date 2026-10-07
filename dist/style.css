@@ -72,3 +72,54 @@ footer .text-button{font-size:12px;padding:0}
   .clean-status-row>div{padding:11px 12px}
   .clean-workspace-head>.workspace-links .btn{flex:1}
 }
+
+
+/* Talind Public Experience V4 */
+.talind-hero{background:linear-gradient(135deg,#103f39 0%,#0a665b 58%,#1b7567 100%);border-radius:22px;padding:clamp(28px,4vw,56px);color:white;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(420px,.95fr);gap:44px;margin-bottom:24px;overflow:hidden;position:relative}
+.talind-hero:after{content:"";position:absolute;width:360px;height:360px;border-radius:50%;background:rgba(218,250,125,.08);right:-130px;top:-150px;pointer-events:none}
+.talind-hero-copy{position:relative;z-index:1;align-self:center}
+.talind-hero .eyebrow{color:#dafa7d}
+.talind-hero h1{font-size:clamp(38px,5vw,66px);line-height:1.04;letter-spacing:-2.5px;margin:18px 0 20px;max-width:760px}
+.talind-hero-copy>p{font-size:17px;line-height:1.75;color:#d8ebe5;max-width:690px;margin:0}
+.talind-hero-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px}
+.talind-hero .btn{border-color:white}
+.talind-hero .btn.outline{background:transparent;color:white}
+.talind-hero .btn.outline:hover{background:rgba(255,255,255,.08)}
+.talind-trust-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.talind-trust-row span{font-size:11px;font-weight:700;color:#d9ebe5;border:1px solid rgba(255,255,255,.18);padding:7px 9px;border-radius:999px;background:rgba(255,255,255,.04)}
+.talind-role-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;position:relative;z-index:1}
+.talind-role-card{appearance:none;border:1px solid rgba(255,255,255,.17);border-radius:14px;background:rgba(255,255,255,.07);padding:18px;text-align:left;color:white;cursor:pointer;min-width:0;transition:transform .16s ease,background .16s ease,border-color .16s ease}
+.talind-role-card:hover{transform:translateY(-2px);background:rgba(255,255,255,.11)}
+.talind-role-card.active{background:white;color:var(--ink);border-color:white}
+.talind-role-label{display:block;font-size:10px;letter-spacing:.1em;font-weight:800;text-transform:uppercase;color:#dafa7d;margin-bottom:10px}
+.talind-role-card.active .talind-role-label{color:var(--green)}
+.talind-role-card strong{display:block;font:700 17px 'Manrope',Arial,sans-serif;line-height:1.35;margin-bottom:8px}
+.talind-role-card p{font-size:12px;line-height:1.55;color:#d8ebe5;margin:0 0 14px}
+.talind-role-card.active p{color:var(--muted)}
+.talind-role-card small{display:block;font-size:11px;color:#bcd7cf;margin-bottom:10px}
+.talind-role-card.active small{color:#5c756e}
+.talind-role-arrow{font-size:12px;font-weight:800;color:#dafa7d}
+.talind-role-card.active .talind-role-arrow{color:var(--green)}
+.talind-how{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 34px}
+.talind-how>div{border:1px solid var(--line);background:white;border-radius:12px;padding:20px}
+.talind-how span{display:block;color:var(--green);font-size:11px;font-weight:800;letter-spacing:.1em;margin-bottom:8px}
+.talind-how strong{display:block;font:700 15px 'Manrope',Arial,sans-serif;margin-bottom:6px}
+.talind-how p{font-size:12px;line-height:1.55;color:var(--muted);margin:0}
+.talind-explore-context{margin:8px 0 14px}
+.talind-explore-context h2{font-size:23px;margin:7px 0 3px}
+.talind-explore-context p{margin:0;color:var(--muted);font-size:14px}
+@media(max-width:1100px){
+  .talind-hero{grid-template-columns:1fr}
+  .talind-role-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@media(max-width:900px){
+  .talind-role-grid{grid-template-columns:1fr 1fr}
+  .talind-how{grid-template-columns:1fr}
+}
+@media(max-width:760px){
+  .talind-hero{border-radius:15px;padding:26px 20px;gap:28px}
+  .talind-hero h1{font-size:38px;letter-spacing:-1.5px}
+  .talind-hero-copy>p{font-size:15px}
+  .talind-role-grid{grid-template-columns:1fr}
+  .talind-hero-actions .btn{width:100%}
+}
