@@ -328,10 +328,13 @@ function authScreen(kind='signup'){
           <input name="password" type="password" autocomplete="${isSignup?'new-password':'current-password'}" minlength="8" required placeholder="Minimum 8 characters">
         </label>
       </div>
+      ${isSignup?'<label class="check-row auth-legal-check"><input type="checkbox" name="legalAccept" required><span>I agree to the <button class="text-link" type="button" onclick="$(\'#modal\').close();navigate(\'terms\')">Terms of Use</button> and acknowledge the <button class="text-link" type="button" onclick="$(\'#modal\').close();navigate(\'privacy\')">Privacy Policy</button>.</span></label>':''}
       <button class="btn" type="submit">${isSignup?'Create account':'Log in'}</button>
-      <p class="muted">${isSignup?'Already have an account?':'New to Talind?'}
+      <div class="auth-secondary">
+        <span>${isSignup?'Already have an account?':'New to Talind?'}</span>
         <button class="text-button" type="button" onclick="authScreen('${isSignup?'login':'signup'}')">${isSignup?'Log in':'Sign up'}</button>
-      </p>
+        ${!isSignup?'<button class="text-button" type="button" onclick="forgotPasswordScreen(document.querySelector(\'#auth-form input[name=email]\')?.value||\'\')">Forgot password?</button>':''}
+      </div>
       <p id="auth-error" class="form-error" role="alert"></p>
     </form>
   `);
@@ -388,6 +391,58 @@ function authScreen(kind='signup'){
       button.textContent=isSignup?'Create account':'Log in';
     }
   };
+}
+
+
+function forgotPasswordScreen(prefill=''){
+  modal(
+    '<span class="eyebrow">ACCOUNT RECOVERY</span>'+
+    '<h2>Reset your Talind password.</h2>'+
+    '<p class="muted">Enter the email used for your Talind account. We will send a secure password-reset link if the account is eligible.</p>'+
+    '<form id="forgot-password-form"><div class="fields">'+
+      '<label class="full">Account email<input name="email" type="email" autocomplete="email" required value="'+esc(prefill||'')+'" placeholder="you@example.com"></label>'+
+    '</div><button class="btn" type="submit">Send reset link</button></form>'+
+    '<p id="forgot-password-error" class="form-error" role="alert"></p>'+
+    '<p class="bottom-note">For your privacy, the confirmation message does not disclose whether an email address is registered.</p>'
+  );
+  $('#forgot-password-form').onsubmit=async function(e){
+    e.preventDefault();
+    const button=e.target.querySelector('button[type="submit"]');
+    const email=String(new FormData(e.target).get('email')||'').trim().toLowerCase();
+    button.disabled=true;button.textContent='Sending…';$('#forgot-password-error').textContent='';
+    try{
+      const {error}=await talindSupabase.auth.resetPasswordForEmail(email,{redirectTo:TALIND_AUTH_REDIRECT+'#reset-password'});
+      if(error)throw error;
+      $('#modal-body').innerHTML=
+        '<span class="eyebrow">CHECK YOUR EMAIL</span>'+
+        '<h2>Password reset link requested.</h2>'+
+        '<p class="muted">If that address can receive a Talind password-reset email, use the link in the message to choose a new password.</p>'+
+        '<div class="dialog-actions"><button class="btn" onclick="$(\'#modal\').close()">Close</button><button class="btn outline" onclick="authScreen(\'login\')">Back to login</button></div>';
+    }catch(error){
+      $('#forgot-password-error').textContent=error?.message||'Unable to request a password reset. Please try again.';
+      button.disabled=false;button.textContent='Send reset link';
+    }
+  };
+}
+
+async function talindResetPasswordSubmit(e){
+  e.preventDefault();
+  const form=e.target,button=form.querySelector('button[type="submit"]'),d=new FormData(form);
+  const password=String(d.get('password')||''),confirm=String(d.get('confirm')||'');
+  const errorEl=$('#reset-password-error');
+  errorEl.textContent='';
+  if(password.length<8){errorEl.textContent='Use at least 8 characters.';return}
+  if(password!==confirm){errorEl.textContent='The passwords do not match.';return}
+  button.disabled=true;button.textContent='Updating…';
+  try{
+    const {error}=await talindSupabase.auth.updateUser({password});
+    if(error)throw error;
+    toast('Password updated successfully.');
+    navigate(talindCurrentUser?'workspace':'explore');
+  }catch(error){
+    errorEl.textContent=error?.message||'Unable to update your password. Request a new reset link and try again.';
+    button.disabled=false;button.textContent='Update password';
+  }
 }
 
 function updateAuthHeader(){
@@ -514,8 +569,14 @@ async function talindInitAuth(){
   const {data,error}=await talindSupabase.auth.getSession();
   if(error)console.error('Talind auth init failed',error);
   await cloudHandleSession(data?.session||null);
-  talindSupabase.auth.onAuthStateChange((_event,session)=>{
-    setTimeout(()=>cloudHandleSession(session),0);
+  talindSupabase.auth.onAuthStateChange((event,session)=>{
+    setTimeout(async()=>{
+      await cloudHandleSession(session);
+      if(event==='PASSWORD_RECOVERY'){
+        location.hash='reset-password';
+        if(window.talindResetPasswordPage)window.talindResetPasswordPage();
+      }
+    },0);
   });
 }
 

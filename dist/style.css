@@ -316,3 +316,24 @@ footer .text-button{font-size:12px;padding:0}
 .training-match-state{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px}.training-match-actions{margin-top:12px}
 @media(max-width:900px){.training-provider-tracks,.training-purpose-selector{grid-template-columns:1fr}}
 @media(max-width:760px){.training-profile-purpose-nav{grid-template-columns:1fr}.provider-course-head{display:block}.provider-course-head .badge{display:inline-block;margin-top:10px}.training-provider-track{padding:18px}.training-track-head{flex-wrap:wrap}.training-plan-pill{margin-left:40px}}
+
+
+/* Talind Auth & Legal Readiness V11 */
+.auth-secondary{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px;font-size:13px;color:var(--muted)}
+.auth-legal-check{margin:4px 0 16px}
+.text-link{appearance:none;border:0;background:none;padding:0;color:var(--green);font:inherit;font-weight:700;text-decoration:underline;cursor:pointer}
+.legal-links{display:flex;gap:13px;align-items:center;flex-wrap:wrap}
+.legal-links a{font-weight:700}
+.legal-page{max-width:980px;margin:0 auto}
+.legal-page-head{border-bottom:1px solid var(--line);padding-bottom:24px;margin-bottom:24px}
+.legal-page-head p{max-width:760px}
+.legal-page section{background:white;border:1px solid var(--line);border-radius:12px;padding:22px 24px;margin:14px 0}
+.legal-page section h2{font-size:19px;margin-bottom:10px}
+.legal-page section h3{font-size:15px;margin:18px 0 7px}
+.legal-page section p,.legal-page section li{font-size:14px;line-height:1.7;color:#52686a}
+.legal-page section ul{padding-left:22px}
+.legal-effective{display:flex;gap:10px;flex-wrap:wrap;margin-top:15px}.legal-effective span{font-size:11px;border:1px solid var(--line);background:#f6f9f8;border-radius:999px;padding:6px 9px;color:var(--muted)}
+.legal-contact-box{background:#eef6f2!important;border-color:#d2e6de!important}
+.reset-password-wrap{max-width:620px;margin:25px auto}
+.reset-password-wrap .panel{margin-top:0}
+@media(max-width:760px){footer{align-items:flex-start}.legal-links{width:100%;gap:10px}.legal-page section{padding:18px}.legal-page-head{padding-bottom:18px}}
