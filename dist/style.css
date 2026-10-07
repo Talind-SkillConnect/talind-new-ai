@@ -161,3 +161,44 @@ footer .text-button{font-size:12px;padding:0}
   .learner-step{padding:11px}
   .learner-match-card .match-fit{max-width:62%;font-size:9px}
 }
+
+
+/* Talind Teacher Journey V6 */
+.teacher-tracks{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0 28px}
+.teacher-track{background:white;border:1px solid var(--line);border-radius:14px;padding:22px;min-width:0}
+.teacher-track.free{border-top:4px solid var(--green)}
+.teacher-track.service{border-top:4px solid #859f4f}
+.teacher-track-head{display:flex;align-items:flex-start;gap:12px}
+.teacher-track-head>div{flex:1;min-width:0}
+.teacher-track-head h2{font-size:20px;margin:6px 0 0}
+.teacher-track-icon{width:30px;height:30px;display:grid;place-items:center;background:#edf4f1;border-radius:50%;font-size:10px;font-weight:800;color:var(--green);flex:0 0 auto}
+.teacher-plan-pill{font-size:10px;font-weight:800;letter-spacing:.08em;border:1px solid #cbdad5;border-radius:999px;padding:6px 8px;color:var(--green);white-space:nowrap}
+.teacher-plan-pill.active{background:var(--green);border-color:var(--green);color:white}
+.teacher-track>p{font-size:13px;line-height:1.65;color:var(--muted);margin:16px 0}
+.teacher-track-progress{display:flex;flex-wrap:wrap;gap:7px;margin:15px 0 18px}
+.teacher-track-progress span{font-size:10px;border:1px solid #e1e8e5;border-radius:999px;background:#f8faf9;color:#6a7c76;padding:6px 8px}
+.teacher-track-progress span.done{background:#eef6f2;border-color:#d5e8e0;color:#285e51;font-weight:700}
+.teacher-inbound{margin-top:-10px;margin-bottom:25px}
+.teacher-match-card .teacher-access{font-size:10px;font-weight:700;color:#356356;text-align:right;max-width:58%;line-height:1.35}
+.teacher-match-card .teacher-access.locked{color:#866024}
+.teacher-match-card.locked{border-color:#e2d8c6}
+.teacher-match-card .card-foot .price>span{display:block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:800}
+.teacher-match-card .card-foot .price small{display:block;max-width:220px;line-height:1.35;margin-top:3px}
+.teacher-match-state{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px}
+.teacher-free-note{font-size:12px;color:#2d6a5a;font-weight:700}
+.teacher-lock-note{font-size:12px;color:#7d5a28;font-weight:700}
+.teacher-match-actions{margin-top:12px}
+.teacher-purpose-help{background:#f4f8f6;border:1px solid #dce9e4;border-radius:10px;padding:16px;margin:-8px 0 20px}
+.teacher-purpose-help>strong{font-size:14px}
+.teacher-purpose-columns{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.teacher-purpose-columns>div{background:white;border:1px solid var(--line);border-radius:9px;padding:12px}
+.teacher-purpose-columns b{font-size:12px;color:var(--green)}
+.teacher-purpose-columns p{font-size:12px;line-height:1.5;color:var(--muted);margin:6px 0 0}
+@media(max-width:900px){.teacher-tracks{grid-template-columns:1fr}}
+@media(max-width:760px){
+  .teacher-track{padding:18px}
+  .teacher-purpose-columns{grid-template-columns:1fr}
+  .teacher-track-head{flex-wrap:wrap}
+  .teacher-plan-pill{margin-left:42px}
+  .teacher-match-card .teacher-access{max-width:62%;font-size:9px}
+}
