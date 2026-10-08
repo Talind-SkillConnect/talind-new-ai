@@ -12,25 +12,38 @@ function liveCurrentSignals(){
   const more=Object.entries(f).filter(function(kv){return /^main_|^second_/.test(kv[0])}).map(function(kv){return kv[1]});
   return {skills:skills,text:[f.needs,f.secondNeed,f.goals,f.subjects,f.grades,f.boards,f.serviceTypes,f.preferredLocations,f.mode,f.city].concat(more).filter(Boolean).join(' '),city:f.city||'',mode:f.mode||f.format||''};
 }
-function liveMatchScore(item){
+// Explainable discovery relevance. Uses ONLY published fields; not a verified eligibility score.
+function liveMatchSignals(item){
   const sig=liveCurrentSignals();
-  const itemText=[item.title,item.desc,item.location,item.mode].concat(item.tags||[]).join(' ');
-  const skillHits=liveOverlap(sig.skills,item.tags||[]);
-  const textHits=liveOverlap(sig.text,itemText);
-  const sameCity=sig.city&&item.location&&liveNorm(sig.city)===liveNorm(item.location);
-  const online=liveNorm(item.mode).indexOf('online')>=0||liveNorm(item.mode).indexOf('flexible')>=0;
-  let score=skillHits*50+textHits*12+(sameCity?18:0)+(online?6:0);
-  if(item.kind==='teacher'&&state.role==='learner')score+=8;
-  if(item.kind==='requirement'&&['teacher','training'].includes(state.role))score+=8;
-  return score;
+  const tokens=v=>liveWords(v);
+  const wanted=tokens([].concat(sig.skills,sig.text).join(' '));
+  const offered=tokens([item.title,item.desc,item.location,item.mode].concat(item.tags||[]).join(' '));
+  const important=tokens(sig.skills);
+  const eligible=(wanted.size>0);
+  let skillHits=0,skillMisses=[];
+  for(const word of important){if(offered.has(word))skillHits++;else skillMisses.push(word)}
+  let contextualHits=0;
+  for(const word of wanted)if(offered.has(word))contextualHits++;
+  const cityMatch=Boolean(sig.city&&item.location&&liveNorm(sig.city)===liveNorm(item.location));
+  const requestedMode=liveNorm(sig.mode),availableMode=liveNorm(item.mode);
+  const modeMatch=Boolean(requestedMode&&availableMode&&(requestedMode===availableMode||requestedMode==='flexible'||availableMode==='flexible'||availableMode==='hybrid'));
+  // A sparse profile cannot produce a deceptively confident near-perfect match.
+  const skillRatio=important.size?skillHits/important.size:0;
+  const contextRatio=wanted.size?contextualHits/wanted.size:0;
+  const raw=Math.round(65*skillRatio+20*contextRatio+(cityMatch?10:0)+(modeMatch?5:0));
+  const score=eligible?Math.min(raw,important.size?95:35):0;
+  return {score,skillHits,skillCount:important.size,contextualHits,cityMatch,modeMatch,eligible,skillMisses};
 }
+function liveMatchScore(item){return liveMatchSignals(item).score}
 function liveReason(item){
-  const sig=liveCurrentSignals();
-  const hits=(item.tags||[]).filter(function(t){return liveOverlap(sig.skills,[t])>0}).slice(0,3);
-  if(hits.length)return 'Skill match: '+hits.join(', ');
-  if(sig.city&&item.location&&liveNorm(sig.city)===liveNorm(item.location))return 'Same location';
-  if(liveNorm(item.mode).indexOf('online')>=0)return 'Online option available';
-  return 'Relevant to your selected Talind role and goals';
+  const m=liveMatchSignals(item);
+  if(!m.eligible)return 'Add skills and requirements to improve relevance';
+  const parts=[];
+  if(m.skillCount)parts.push(m.skillHits+' of '+m.skillCount+' skill terms overlap');
+  if(m.cityMatch)parts.push('same city');
+  if(m.modeMatch)parts.push('compatible delivery mode');
+  if(!parts.length&&m.contextualHits)parts.push('related profile terms');
+  return parts.length?parts.join(' · '):'Limited overlap — review the profile details';
 }
 function liveTeacherItems(){
   return (liveDiscovery.profiles||[]).filter(function(p){
@@ -62,7 +75,7 @@ function liveRequirementItems(){
   }).sort(function(a,b){return b.matchScore-a.matchScore});
 }
 function liveMatchCard(i){
-  return '<article class="card"><div class="card-top"><span class="badge">'+esc(i.type)+'</span><span class="badge">'+esc(i.matchReason)+'</span></div><div class="card-body"><div class="identity"><div class="initials">'+esc(i.initials)+'</div><div><h3>'+esc(i.name)+'</h3><small>'+esc(i.subtitle)+'</small></div></div><h3>'+esc(i.title)+'</h3><p class="desc">'+esc(i.desc||'')+'</p><div class="tags">'+(i.tags||[]).slice(0,6).map(function(t){return '<span>'+esc(t)+'</span>'}).join('')+'</div><div class="meta"><span>Location: '+esc(i.location)+'</span><span>Mode: '+esc(i.mode)+'</span></div></div><div class="card-foot"><div class="price">'+esc(i.price)+'<small>'+esc(i.note)+'</small></div><button class="btn light" onclick="liveMatchDetail(\''+i.key+'\')">View match</button></div></article>';
+  return '<article class="card"><div class="card-top"><span class="badge">'+esc(i.type)+'</span><span class="badge">Relevance '+i.matchScore+'%</span><span class="badge">'+esc(i.matchReason)+'</span></div><div class="card-body"><div class="identity"><div class="initials">'+esc(i.initials)+'</div><div><h3>'+esc(i.name)+'</h3><small>'+esc(i.subtitle)+'</small></div></div><h3>'+esc(i.title)+'</h3><p class="desc">'+esc(i.desc||'')+'</p><div class="tags">'+(i.tags||[]).slice(0,6).map(function(t){return '<span>'+esc(t)+'</span>'}).join('')+'</div><div class="meta"><span>Location: '+esc(i.location)+'</span><span>Mode: '+esc(i.mode)+'</span></div></div><div class="card-foot"><div class="price">'+esc(i.price)+'<small>'+esc(i.note)+'</small></div><button class="btn light" onclick="liveMatchDetail(\''+i.key+'\')">View match</button></div></article>';
 }
 function liveFind(key){
   key=String(key);
