@@ -38,6 +38,13 @@ schema, triggers, grants and policies. Do not assume a fresh branch mirrors all
 production tables. The Supabase branch was quoted at USD 0.01344/hour; request
 explicit cost approval before creating it.
 
+## Static review corrections (14 October 2026)
+- Fixed the dollar-quote delimiter of `target_has_role` in migration 02.
+- Denied learner-to-learner direct contact disclosure in migration 01.
+- Enforced match actor/audit identity on INSERT and UPDATE, and restricted quotes to INR.
+- Extended SQL regression fixtures for these security cases.
+- **Static review is not SQL execution:** database compatibility, RLS under real JWTs, and UI integration are unverified.
+
 ## Required automated tests
 1. SQL regression script exits with a passing notice and rolls back all synthetic
    accounts, profile records, messages and connections.
