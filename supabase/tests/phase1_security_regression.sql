@@ -11,6 +11,7 @@ declare
   v_learner uuid := gen_random_uuid();
   v_teacher uuid := gen_random_uuid();
   v_other_teacher uuid := gen_random_uuid();
+  v_other_learner uuid := gen_random_uuid();
   v_connection uuid;
   v_allowed boolean;
 begin
@@ -28,17 +29,21 @@ begin
      '',now(),'{"role":"teacher"}'::jsonb,'{}'::jsonb,now(),now()),
     (v_other_teacher,'00000000-0000-0000-0000-000000000000',
      'authenticated','authenticated','phase1-other-'||v_other_teacher||'@example.invalid',
-     '',now(),'{"role":"teacher"}'::jsonb,'{}'::jsonb,now(),now());
+     '',now(),'{"role":"teacher"}'::jsonb,'{}'::jsonb,now(),now()),
+    (v_other_learner,'00000000-0000-0000-0000-000000000000',
+     'authenticated','authenticated','phase1-peer-'||v_other_learner||'@example.invalid',
+     '',now(),'{"role":"learner"}'::jsonb,'{}'::jsonb,now(),now());
 
   if (select count(*) from public.account_roles
-      where user_id in (v_learner,v_teacher,v_other_teacher)) <> 3 then
+      where user_id in (v_learner,v_teacher,v_other_teacher,v_other_learner)) <> 4 then
     raise exception 'FAIL: new users did not receive locked account roles';
   end if;
 
   insert into public.public_profiles(user_id,role,display_name,is_active)
   values (v_learner,'learner','Test Learner',true),
          (v_teacher,'teacher','Test Teacher',true),
-         (v_other_teacher,'teacher','Other Test Teacher',true);
+         (v_other_teacher,'teacher','Other Test Teacher',true),
+         (v_other_learner,'learner','Other Test Learner',true);
 
   perform set_config('request.jwt.claim.role','authenticated',true);
   perform set_config('request.jwt.claim.sub',v_teacher::text,true);
@@ -66,6 +71,13 @@ begin
     from public.get_match_contact(v_other_teacher,'learner','teacher');
   if v_allowed is distinct from true then
     raise exception 'FAIL: learner cannot access the intentionally free teacher contact';
+  end if;
+
+
+  select allowed into v_allowed
+    from public.get_match_contact(v_other_learner,'learner','learner');
+  if v_allowed is distinct from false then
+    raise exception 'FAIL: learner-to-learner private contact was disclosed';
   end if;
 
   -- Set up a relationship initiated by the parent/learner (permitted).
@@ -98,6 +110,16 @@ begin
       set status='accepted',updated_by=v_teacher
       where id=v_connection;
     raise exception 'FAIL: teacher accepted own quote';
+  exception when insufficient_privilege then null;
+  end;
+
+
+  -- A participant must not falsify the actor recorded in connection updates.
+  begin
+    update public.match_connections
+      set updated_by=v_other_teacher
+      where id=v_connection;
+    raise exception 'FAIL: a user forged the connection updated_by audit field';
   exception when insufficient_privilege then null;
   end;
 
