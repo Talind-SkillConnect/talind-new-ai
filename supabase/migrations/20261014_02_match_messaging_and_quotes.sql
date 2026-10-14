@@ -5,6 +5,17 @@
 
 begin;
 
+-- Bypass account_roles' own-row RLS solely for the target's role assertion.
+create or replace function talind_private.target_has_role(p_user uuid,p_role text)
+returns boolean
+language sql stable security definer set search_path = ''
+as $
+  select exists (select 1 from public.account_roles ar
+    where ar.user_id = p_user and ar.role = p_role)
+$;
+revoke all on function talind_private.target_has_role(uuid,text) from public, anon;
+grant execute on function talind_private.target_has_role(uuid,text) to authenticated;
+
 create or replace function talind_private.can_start_connection(
   p_initiator_role text, p_target_role text
 )
@@ -96,10 +107,7 @@ for insert to authenticated with check (
   and target_user_id <> initiator_user_id
   and status in ('shortlisted','interest_expressed')
   and talind_private.can_start_connection(initiator_role,target_role)
-  and exists (
-    select 1 from public.account_roles tar
-    where tar.user_id = target_user_id and tar.role = target_role
-  )
+  and talind_private.target_has_role(target_user_id,target_role)
   and (
     (target_role = 'learner'
       and context_type = 'learner_requirement'
