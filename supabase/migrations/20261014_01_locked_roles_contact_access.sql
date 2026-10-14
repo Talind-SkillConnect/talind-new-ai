@@ -112,7 +112,7 @@ begin
     return;
   end if;
 
-  if p_requester_role = 'learner' then
+  if p_requester_role = 'learner' and p_target_role in ('teacher','institution','training') then
     -- Students/parents may contact published teachers and providers for free.
     v_allowed := true;
     v_reason := 'Student / Parent contact access is free.';
