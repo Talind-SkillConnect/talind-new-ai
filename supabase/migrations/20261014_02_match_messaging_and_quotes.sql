@@ -167,6 +167,9 @@ begin
       or new.status not in ('shortlisted','interest_expressed')
       or new.quote_amount is not null
       or new.quote_note is not null
+      or new.quote_currency is distinct from 'INR'
+      or new.last_message_at is not null
+      or new.updated_by is distinct from v_uid
       or not talind_private.can_start_connection(new.initiator_role,new.target_role)
     then
       raise exception 'Unauthorized match creation'
@@ -200,9 +203,8 @@ begin
   v_changed_quote := row(new.quote_amount,new.quote_currency,new.quote_note)
     is distinct from row(old.quote_amount,old.quote_currency,old.quote_note);
 
-  if (v_changed_status or v_changed_quote
-      or new.last_message_at is distinct from old.last_message_at)
-     and new.updated_by is distinct from v_uid then
+  -- Even metadata-only updates must not impersonate another participant.
+  if new.updated_by is distinct from v_uid then
     raise exception 'Match changes must identify the authenticated actor'
       using errcode = '42501';
   end if;
@@ -212,7 +214,8 @@ begin
 
   if v_changed_quote then
     if not v_paid or new.status <> 'quote_submitted'
-       or new.quote_amount is null or new.quote_amount <= 0 then
+       or new.quote_amount is null or new.quote_amount <= 0
+       or new.quote_currency is distinct from 'INR' then
       raise exception 'Only a paid teacher can submit or edit a valid learner quote'
         using errcode = '42501';
     end if;
