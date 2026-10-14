@@ -9,10 +9,10 @@ begin;
 create or replace function talind_private.target_has_role(p_user uuid,p_role text)
 returns boolean
 language sql stable security definer set search_path = ''
-as $
+as $$
   select exists (select 1 from public.account_roles ar
     where ar.user_id = p_user and ar.role = p_role)
-$;
+$$;
 revoke all on function talind_private.target_has_role(uuid,text) from public, anon;
 grant execute on function talind_private.target_has_role(uuid,text) to authenticated;
 
