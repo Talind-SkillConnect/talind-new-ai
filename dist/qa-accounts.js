@@ -128,7 +128,7 @@ async function qaResetData(){
  await cloudHandleSession(null);location.hash='#explore';qaRefreshBar();render();toast('Dummy QA browser data cleared.');
 }
 async function demoLogout(){await qaSwitchAccount('');}
-Object.assign(window,{qaSwitchAccount,qaCreateAccount,qaMembershipPanel,qaSetMembership,qaExportData,qaResetData});
+Object.assign(window,{updateAuthHeader,authScreen,demoLogout,qaSwitchAccount,qaCreateAccount,qaMembershipPanel,qaSetMembership,qaExportData,qaResetData});
 qaRefreshBar();
 if(!qa.active()){
  const showOnLoad=()=>{if(!qa.active())qaCreateAccount();};
