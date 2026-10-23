@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>Talind · Login-Free Matching QA</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#17342e;background:#f4f7f5}*{box-sizing:border-box}body{margin:0}header{background:#083f3a;color:white;padding:20px clamp(16px,4vw,48px);display:flex;justify-content:space-between;align-items:center;gap:20px}header strong{font-size:24px;letter-spacing:-1px}header small{display:block;color:#c5e6dc;font-size:12px;margin-top:4px}header .tag{border:1px solid #9dc8be;color:#d8f3e9;border-radius:30px;padding:8px 13px;font-size:12px;font-weight:700}main{max-width:1300px;margin:auto;padding:28px clamp(15px,3vw,36px) 70px}h1{font-size:clamp(25px,3vw,35px);letter-spacing:-1px;margin:0 0 9px}h2{font-size:20px;margin:0 0 12px}h3{font-size:17px;margin:0 0 8px}p{line-height:1.52}.muted{color:#547068}.intro{margin-bottom:22px}.intro p{margin:0}.notice{border:1px solid #d4e4db;background:#eaf4ed;color:#24473e;border-radius:12px;padding:13px 16px;font-size:13px;line-height:1.6;margin-bottom:20px}.layout{display:grid;grid-template-columns:minmax(320px,420px) minmax(400px,1fr);gap:22px;align-items:start}.panel{background:#fff;border:1px solid #dce8e1;border-radius:17px;padding:22px;box-shadow:0 6px 24px #153e3010}.panel + .panel{margin-top:20px}label{display:block;font-size:12px;font-weight:750;color:#35574e;margin:14px 0 5px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}input,select,textarea{font:inherit;width:100%;padding:10px 11px;min-height:43px;border:1px solid #c9dad0;border-radius:9px;background:#fff;color:#17342e}textarea{resize:vertical;min-height:75px}input:read-only{background:#f2f6f3;color:#516e65}button{font:inherit;cursor:pointer;border:1px solid #0b6958;border-radius:9px;padding:11px 16px;font-weight:700;background:#0b6958;color:white}button.secondary{background:white;color:#0b6958}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #a4dfbc;outline-offset:2px}.actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:20px}.actions button{flex:1}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}.stat{background:#f2f7f3;border:1px solid #dce9e0;border-radius:11px;padding:12px}.stat b{font-size:22px;display:block}.stat span{color:#60766c;font-size:12px}.tablewrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:12px 9px;border-bottom:1px solid #e2ece6;vertical-align:top}th{color:#537468;font-size:11px;text-transform:uppercase;letter-spacing:.035em}td strong{display:block}td small{color:#5e7b70;display:block;margin-top:4px}.score{font-weight:800;font-variant-numeric:tabular-nums}.high{color:#087c4e}.medium{color:#9f6212}.low{color:#a74235}.empty{background:#f8faf8;border:1px dashed #b9d4c7;border-radius:12px;padding:25px;text-align:center;color:#55776a}.qa-select{min-width:130px;min-height:35px;font-size:12px}.subtle{font-size:12px;color:#71847d}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}.pill{display:inline-block;padding:5px 9px;border-radius:9px;background:#e5efe9;color:#28564b;font-size:11px;font-weight:750}.report{margin-top:20px}.report ul{padding-left:20px;line-height:1.7}.report li+li{margin-top:5px}.report-row{padding:12px 0;border-bottom:1px solid #e6eee8}.report-row strong{display:block}.report-row span{font-size:13px;color:#5e776e}.pass{color:#068149}.fail{color:#b64b32}@media(max-width:950px){.layout{grid-template-columns:1fr}.panel{padding:17px}}@media(max-width:600px){.grid2{grid-template-columns:1fr}.stats{grid-template-columns:repeat(3,minmax(0,1fr))}header .tag{display:none}}
+</style>
+</head>
+<body>
+<header><div><strong>talind</strong><small>Skills open doors · Matching QA</small></div><span class="tag">ISOLATED DEMO · NO EMAIL OR LOGIN</span></header>
+<main>
+<section class="intro"><h1>Explore match quality before launch</h1><p class="muted">Test all four stakeholder categories and compare results using simulated profiles and requirements.</p></section>
+<div class="notice"><strong>Test environment only.</strong> Every identity below is fictitious and uses a reserved <code>example.invalid</code> address. This page runs the repository's existing matching functions against in-memory fixtures; it does not authenticate, contact Supabase, send email, publish a profile, or activate membership. Scores indicate term-based relevance—not verified eligibility or AI predictions.</div>
+<div class="layout">
+<section class="panel" aria-label="Test configuration"><h2>1. Select your test account</h2>
+<label for="scenario">Example test scenario</label><select id="scenario"></select>
+<div class="grid2"><div><label for="role">Stakeholder category</label><select id="role"><option value="learner">Student / Parent</option><option value="teacher">Teacher / Expert</option><option value="institution">School / College</option><option value="training">Training Provider</option></select></div><div><label for="email">Dummy test email</label><input readonly id="email" aria-label="Dummy email (not a real login)" /></div></div>
+<label for="skills">Required / offered skills (comma-separated)</label><textarea id="skills" placeholder="e.g. CBSE, Mathematics, Python"></textarea>
+<label for="needs">Main requirement / purpose</label><input id="needs" placeholder="e.g. Class 10 Mathematics tuition" />
+<label for="second">Second requirement (optional)</label><input id="second" placeholder="e.g. School admission" />
+<div class="grid2"><div><label for="city">City</label><input id="city" placeholder="Coimbatore" /></div><div><label for="mode">Preferred delivery mode</label><select id="mode"><option>Flexible</option><option>Online</option><option>In person</option><option>Hybrid</option></select></div></div>
+<label for="goals">Additional requirements / goals</label><textarea id="goals" placeholder="e.g. Grade 9 and 10 Cambridge curriculum"></textarea>
+<div class="actions"><button id="match">Find matching opportunities →</button><button class="secondary" id="reset">Restore example</button></div>
+<p class="subtle">Select a scenario, then edit any requirement to see how the score changes. No registration or email verification is needed.</p>
+</section>
+<div>
+<section class="panel" aria-live="polite"><h2>2. Match results</h2><div class="stats" id="stats"></div><div id="results" class="tablewrap"></div><p class="subtle" id="results-note"></p></section>
+<section class="panel report"><h2>3. Validate all scenarios</h2><p class="muted">Check whether the expected sample profile appears in the result set and its ranking. This checks matching behaviour, not backend authorisation.</p><div class="actions"><button id="run-all">Run eight QA scenarios</button><button id="export" class="secondary">Export test outcomes (CSV)</button></div><div id="report"><div class="empty">Run the scenarios to create a test report.</div></div></section>
+</div></div>
+</main>
+<script src="qa-base.js"></script>
+<script src="live-matching.js"></script>
+<script src="qa-app.js"></script>
+</body></html>
