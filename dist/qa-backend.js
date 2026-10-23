@@ -53,7 +53,7 @@ function contactDecision(params){
  else if(callerRole==='institution'&&role==='training'){allowed=member(caller.id,'institution')&&!!c;reason='Institution membership and a connection are required.';}
  return allowed?{allowed:true,reason:'Allowed in simulated QA',display_name:target.nickname||target.email,email:target.email,phone:'Not provided (demo)',whatsapp:'Not provided (demo)'}:{allowed:false,reason};
 }
-function writeGuard(table,operation,rows){
+function writeGuard(table,operation,rows,changes={}){
  const a=active();
  if(!a)throw Error('Select a QA account.');
  const uid=a.id;
@@ -72,10 +72,10 @@ function writeGuard(table,operation,rows){
        if(a.role==='institution'&&!member(uid,'institution'))throw Error('Institution membership required.');
        if(a.role==='training'&&!member(uid,'training'))throw Error('Training membership required.');
      }
-     if(operation==='update'&&'quote_amount' in row){
+     if(operation==='update'&&'quote_amount' in changes){
        if(a.role!=='teacher'||!(c.initiator_role==='learner'||c.target_role==='learner')||!member(uid,'teacher-services'))throw Error('Only active Teacher Services members may submit quotes.');
      }
-     if(operation==='update'&&row.status==='accepted'&&c.quote_amount!=null&&a.role!=='learner')throw Error('Only a learner/parent can accept a teacher quote.');
+     if(operation==='update'&&changes.status==='accepted'&&c.quote_amount!=null&&a.role!=='learner')throw Error('Only a learner/parent can accept a teacher quote.');
    }
    if(table==='match_messages'){
      const c=connectionFor(row.connection_id);
@@ -135,7 +135,7 @@ class Query{
    }else if(this.action==='update'){
      const found=table.filter(where);
      const incoming=found.map(r=>Object.assign({},r,this.payload));
-     writeGuard(this.table,'update',incoming);
+     writeGuard(this.table,'update',incoming,this.payload);
      for(const row of incoming){
        const n=table.findIndex(r=>r.id===row.id || (this.table==='profiles'&&r.id===row.id));
        if(n>=0){table[n]=Object.assign({},row,{updated_at:new Date().toISOString()});rows.push(clone(table[n]));}
